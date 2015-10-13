@@ -17,7 +17,7 @@ int main(int argc, char** argv, char** env)
 	while(*env) {
 		if(cdir_env = strtok(*env,"=")) {
 			if(!strcmp(cdir_env,"PWD")) {
-				printf("\"PWD\" from **env is %s\n", strtok(NULL,"="));
+				printf("${PWD} from **env is %s\n", strtok(NULL,"="));
 			};
 		} else {
 			printf("ENV fail\n");

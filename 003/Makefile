@@ -5,11 +5,11 @@ all: libHello.so hello
 clean:
 		rm -f libHello.so hello
 
-run:
+run: all
 		./hello
 
 libHello.so: libHello.c libHello.h
-		${CC} -o libHello.so -shared libHello.c
+		${CC} -o libHello.so -fPIC -shared libHello.c
 
-hello: main
-		mv main hello
+hello: main.c
+		${CC} -o hello -L${PWD} -ldl main.c
