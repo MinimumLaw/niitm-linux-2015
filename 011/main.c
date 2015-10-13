@@ -12,7 +12,7 @@ int open_out(char* name);
 
 int open_in(char* name)
 {
-    int ret = open(name, O_RDONLY);
+    int ret = open(name, O_RDWR);
     if(ret < 0) {
 	printf("DEBUG: %s not present. Create\n", name);
 	umask(0);
@@ -28,7 +28,7 @@ int open_in(char* name)
 
 int open_out(char* name)
 {
-    int ret = open(name, O_WRONLY);
+    int ret = open(name, O_RDWR);
     if(ret < 0) {
 	printf("DEBUG: %s not present. Create\n", name);
 	umask(0);
@@ -66,15 +66,13 @@ int main(int argc, char** argv, char** env)
 	fd_set rs, ws, xs;
 	int ret,rd,wr;
 	
-	FD_ZERO(&xs);
 	
 	FD_ZERO(&rs);
 	FD_SET(fd_in, &rs);
 	FD_SET(STDIN_FILENO, &rs);
 	
+	FD_ZERO(&xs);
 	FD_ZERO(&ws);
-	FD_SET(fd_out, &ws);
-	FD_SET(STDOUT_FILENO, &ws);
 	
 	
 	ret = select(fd_out + 1, &rs, &ws, &xs, NULL);
