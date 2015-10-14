@@ -6,9 +6,12 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-int	sock,port;
-struct	sockaddr_in bind_addr, bcast_addr;
+int	serv,sock,port;
+
+struct	sockaddr_in serv_addr, sock_addr, bcast_addr;
 
 int main(int argc, char** argv, char** env)
 {
@@ -17,22 +20,58 @@ int main(int argc, char** argv, char** env)
 	return -1;
     }
 
-    /* create socket */
-    sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    port = atoi(argv[1]);
+    if(port < 1 || port>65535) {
+	printf("Port error!\n");
+	return -1;
+    }
 
-    bind_addr.sin_family = AF_INET;
-    bind_addr.sin_port = htons(port);
-    bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    /* create server (receiver) socket */
+    serv = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if(sock<0) {
+	perror("server socket");
+	return -1;
+    }
+
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(port);
+    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if(bind(serv, (const struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in)) < 0) {
+	perror("bind");
+	return -1;
+    }
+
+    /* create client (sending) socket */
+    sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if(sock<0) {
+	perror("client socket");
+	return -1;
+    }
+
+    int broadcastEnable=1;
+    setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable));
+    perror("setsockopt");
+
+    memset(&sock_addr, 0, sizeof(sock_addr));
+    sock_addr.sin_family = AF_INET;
+    sock_addr.sin_port = 0; /* dynamic */
+    sock_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if(connect(sock, (struct sockaddr*)&sock_addr, sizeof(struct sockaddr_in)) < 0) {
+	perror("connect");
+	return -1;
+    }
+
+    memset(&bcast_addr, 0, sizeof(sock_addr));
+
+    /* prepare broadcast destination */
 
     bcast_addr.sin_family = AF_INET;
     bcast_addr.sin_port = htons(port);
     bcast_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
-    if(bind(sock, (struct sockaddr*)&bind_addr, sizeof(struct sockaddr_in)) < 0) {
-	perror("bind");
-	return -1;
-    }
-    
     /* chat here */
     while(1) {
 	char buff[80];
@@ -41,7 +80,7 @@ int main(int argc, char** argv, char** env)
 	
 	
 	FD_ZERO(&rs);
-	FD_SET(sock, &rs);
+	FD_SET(serv, &rs);
 	FD_SET(STDIN_FILENO, &rs);
 	
 	FD_ZERO(&xs);
@@ -60,13 +99,14 @@ int main(int argc, char** argv, char** env)
 	    if(ret < 0) {
 		perror("stdin read");
 	    } else if (ret > 0) {
-		ret = write(wr, &buff, ret);
+//		ret = write(sock, &buff, ret);
+		ret = sendto(sock, &buff, ret, 0, (const struct sockaddr*)&bcast_addr, sizeof(bcast_addr));
 		if(ret < 0) {
 		    perror("write sock");
 		}
 	    }
-	} else if (FD_ISSET(sock, &rs)) {
-	    int ret = read(sock, &buff, sizeof(buff));
+	} else if (FD_ISSET(serv, &rs)) {
+	    int ret = read(serv, &buff, sizeof(buff));
 	    
 	    if(ret < 0) {
 		perror("sock read");
