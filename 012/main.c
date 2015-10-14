@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <sched.h> /* sched_yield() here */
 #include <errno.h>
 
 typedef struct {
@@ -36,9 +38,9 @@ bool init_game_board(game_board *brd)
 	return false;
     }
 
-    brd->p_bulls = malloc(brd->bulls * sizeof(pthread_t));
+    brd->p_bears = malloc(brd->bears * sizeof(pthread_t));
     if(!brd->p_bulls) {
-	perror("malloc::bulls pids");
+	perror("malloc::bears pids");
 	return false;
     }
 
@@ -57,7 +59,8 @@ void* bull_pthread(void* arg)
 
     while(1){
 	if(brd->need_exit) pthread_exit(NULL);
-	if(!pthread_mutex_lock(&brd->mutex)) {
+	sched_yield();
+	if(pthread_mutex_lock(&brd->mutex)) {
 	    perror("bull:lock()");
 	    pthread_exit(NULL);
 	}
@@ -65,7 +68,7 @@ void* bull_pthread(void* arg)
 	if(brd->board[offset] == 'X' || brd->board[offset] == 'E')
 	    brd->board[offset] = 'U';
 
-	if(!pthread_mutex_unlock(&brd->mutex)) {
+	if(pthread_mutex_unlock(&brd->mutex)) {
 	    perror("bull:unlock()");
 	    pthread_exit(NULL);
 	}
@@ -81,14 +84,15 @@ void* bear_pthread(void* arg)
 
     while(1){
 	if(brd->need_exit) pthread_exit(NULL);
-	if(!pthread_mutex_lock(&brd->mutex)) {
+	sched_yield();
+	if(pthread_mutex_lock(&brd->mutex)) {
 	    perror("bear:lock()");
 	    pthread_exit(NULL);
 	}
 	if(brd->board[offset] == 'X' || brd->board[offset] == 'U')
 	    brd->board[offset] = 'E';
 
-	if(!pthread_mutex_unlock(&brd->mutex)) {
+	if(pthread_mutex_unlock(&brd->mutex)) {
 	    perror("bear:unlock()");
 	    pthread_exit(NULL);
 	}
@@ -104,20 +108,28 @@ bool start_game(game_board *brd)
     
     brd->need_exit = false;
     
-    for(tmp=0; tmp<brd->bulls; tmp++) {
-	if(pthread_create(&brd->p_bulls[tmp], NULL,
-	    &bull_pthread, (void *)brd)!=0) {
-	    perror("bulls:pthread:create");
-	    return false;
-	}
-    }
-
+    printf("DEBUG: Create bears...\n");
     for(tmp=0; tmp<brd->bears; tmp++) {
-	if(pthread_create(&brd->p_bears[tmp], NULL,
-	    &bear_pthread, (void *)brd)!=0) {
+	printf("DEBUG: bear %d create ", tmp+1);
+	if(pthread_create(&(brd->p_bears[tmp]), NULL,
+	    bear_pthread, (void *)brd)) {
+	    printf("FAIL\n");
 	    perror("bears:pthread:create");
 	    return false;
 	}
+	printf("DONE\n");
+    }
+
+    printf("DEBUG: Create bulls...\n");
+    for(tmp=0; tmp<brd->bulls; tmp++) {
+	printf("DEBUG: bull %d create ", tmp+1);
+	if(pthread_create(&(brd->p_bulls[tmp]), NULL,
+	    bull_pthread, (void *)brd)) {
+	    printf("FAIL\n");
+	    perror("bulls:pthread:create");
+	    return false;
+	}
+	printf("DONE\n");
     }
     
     return true;
@@ -135,13 +147,13 @@ void show_statistics(game_board *brd)
 
     x=e=u=tmp=0;
 
-    if(!pthread_mutex_lock(&brd->mutex)) {
+    if(pthread_mutex_lock(&brd->mutex)) {
 	perror("stat:lock()");
 	pthread_exit(NULL);
     }
 
-    while(tmp++<brd->size){
-	switch(brd->board[tmp]) {
+    while(tmp<brd->size){
+	switch(brd->board[tmp++]) {
 	case 'X': x++; break;
 	case 'U': u++; break;
 	case 'E': e++; break;
@@ -153,10 +165,44 @@ void show_statistics(game_board *brd)
     printf("Empty: %d, Bears: %d, Bulls: %d, Total: %d\n",
 	x, e, u, x+e+u);
 
-    if(!pthread_mutex_lock(&brd->mutex)) {
+    if(pthread_mutex_unlock(&brd->mutex)) {
 	perror("stat:unlock()");
 	pthread_exit(NULL);
     }
+}
+
+void interrupt_callback(int signum)
+{
+    int tmp;
+    
+    printf("Termination required.\n");
+    brd.need_exit = true;
+    
+    printf("DEBUG: Killing bears...\n");
+    for(tmp=0; tmp<brd.bears; tmp++) {
+	printf("DEBUG: bear %d kill ", tmp+1);
+	if(pthread_join(brd.p_bears[tmp], NULL)) {
+	    printf("FAIL\n");
+	    perror("bears:pthread:kill");
+	}
+	printf("DONE\n");
+    }
+
+    printf("DEBUG: Killing bulls...\n");
+    for(tmp=0; tmp<brd.bulls; tmp++) {
+	printf("DEBUG: bull %d kill ", tmp+1);
+	if(pthread_join(brd.p_bulls[tmp], NULL)) {
+	    printf("FAIL\n");
+	    perror("bulls:pthread:kill");
+	}
+	printf("DONE\n");
+    }
+    
+    free(brd.board);
+    free(brd.p_bulls);
+    free(brd.p_bears);
+
+    exit(0);
 }
 
 int main(int argc, char** argv, char** env)
@@ -165,6 +211,8 @@ int main(int argc, char** argv, char** env)
 	printf("USAGE:\n\t%s <bulls> <bears> <size>\n", argv[0]);
 	return -1;
     };
+    
+    signal(SIGINT, interrupt_callback);
     
     brd.bulls = atoi(argv[1]);
     brd.bears = atoi(argv[2]);
@@ -182,6 +230,8 @@ int main(int argc, char** argv, char** env)
 	return -1;
     }
 
+    show_statistics(&brd);
+
     if(!start_game(&brd)) {
 	printf("DEBUG: Start failed!\n");
 	return -1;
@@ -189,6 +239,7 @@ int main(int argc, char** argv, char** env)
 
     while(1) {
 	show_statistics(&brd);
+	sched_yield(); 
     }
 
     return 0;
