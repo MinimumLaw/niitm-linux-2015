@@ -10,8 +10,8 @@
 #include <string.h>
 
 int	serv,sock,port;
-
-struct	sockaddr_in serv_addr, sock_addr, bcast_addr;
+int 	broadcastEnable=1;
+struct	sockaddr_in serv_addr, sock_addr;
 
 int main(int argc, char** argv, char** env)
 {
@@ -50,27 +50,21 @@ int main(int argc, char** argv, char** env)
 	return -1;
     }
 
-    int broadcastEnable=1;
-    setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable));
-    perror("setsockopt");
+    if(setsockopt(sock, SOL_SOCKET, SO_BROADCAST,
+	    &broadcastEnable, sizeof(broadcastEnable)) < 0) {
+	perror("setsockopt");
+	return -1;
+    }
 
     memset(&sock_addr, 0, sizeof(sock_addr));
     sock_addr.sin_family = AF_INET;
-    sock_addr.sin_port = 0; /* dynamic */
-    sock_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    sock_addr.sin_port = htons(port);
+    sock_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
     if(connect(sock, (struct sockaddr*)&sock_addr, sizeof(struct sockaddr_in)) < 0) {
 	perror("connect");
 	return -1;
     }
-
-    memset(&bcast_addr, 0, sizeof(sock_addr));
-
-    /* prepare broadcast destination */
-
-    bcast_addr.sin_family = AF_INET;
-    bcast_addr.sin_port = htons(port);
-    bcast_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
     /* chat here */
     while(1) {
@@ -99,8 +93,7 @@ int main(int argc, char** argv, char** env)
 	    if(ret < 0) {
 		perror("stdin read");
 	    } else if (ret > 0) {
-//		ret = write(sock, &buff, ret);
-		ret = sendto(sock, &buff, ret, 0, (const struct sockaddr*)&bcast_addr, sizeof(bcast_addr));
+		ret = write(sock, &buff, ret);
 		if(ret < 0) {
 		    perror("write sock");
 		}

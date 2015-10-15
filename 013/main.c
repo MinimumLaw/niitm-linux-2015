@@ -53,7 +53,7 @@ int open_out(char* port_number)
     conn_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     
     if(connect(ret, (struct sockaddr*)&conn_addr, sizeof(struct sockaddr_in)) < 0) {
-	perror("bind");
+	perror("connect");
 	return -1;
     }
 
