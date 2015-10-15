@@ -28,20 +28,24 @@ struct {
 
 char	binary_data[] = "octet/stream";
 
-char err_404[] = "HTTP/1.0 404 Not Found\n";
-char err_403[] = "HTTP/1.0 403 Forbidden\n";
-char err_500[] = "HTTP/1.0 500 Internal Server Error\n";
+char err_404[] = "HTTP/1.1 404 Not Found\r\n";
+char err_403[] = "HTTP/1.1 403 Forbidden\r\n";
+char err_500[] = "HTTP/1.1 500 Internal Server Error\r\n";
 
 void send_error(int sock, int code)
 {
+    printf("Send error to client: ");
     switch(code){
 	case 403:
+	    printf("%s", err_403);
 	    write(sock, err_403, sizeof(err_403));
 	    break;
 	case 404:
+	    printf("%s", err_404);
 	    write(sock, err_404, sizeof(err_404));
 	    break;
 	default: /* 500 */
+	    printf("%s", err_500);
 	    write(sock, err_500, sizeof(err_500));
 	    break;
     }
@@ -107,8 +111,8 @@ void http_proc(int fd)
 
 	fname = buffer + 5; /* trim GET_/ from request - get filename */
 	if(( file_fd = open(fname, O_RDONLY)) == -1) {
-		send_error(fd, 404);
 		perror(fname);
+		send_error(fd, 404);
 		return;
 	}
 	
@@ -116,11 +120,11 @@ void http_proc(int fd)
 	len = lseek(file_fd, (off_t)0, SEEK_END);
 	lseek(file_fd, (off_t)0, SEEK_SET);
 
-        sprintf(buffer,"HTTP/1.1 200 OK\n"
-    	    "Server: lab016/1.0\n"
-    	    "Content-Length: %ld\n"
-    	    "Connection: close\n"
-    	    "Content-Type: %s\n\n",
+        sprintf(buffer,"HTTP/1.1 200 OK\r\n"
+		"Server: lab016/1.0\r\n"
+		"Content-Length: %ld\r\n"
+		"Connection: close\r\n"
+		"Content-Type: %s\r\n\r\n",
     	    len, fstr);
 	printf("Server answer:\n%s\n", buffer);
 	write(fd,buffer,strlen(buffer));
