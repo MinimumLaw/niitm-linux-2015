@@ -21,10 +21,9 @@ int main(int argc, char** argv, char** env)
 
     /* Add pwd to PATH list */
     path = getenv("PATH");
-    printf("old PATH=%s\n",path);
     if(path) {
 	strcpy(inbuff, path);
-	strcat(inbuff,";.");
+	strcat(inbuff,":.");
     } else {
 	strcpy(inbuff,".");
     }
@@ -33,24 +32,22 @@ int main(int argc, char** argv, char** env)
 	perror("setenv");
 	return -1;
     }
-    printf("new PATH=%s\n",inbuff);
-    
+
     printf("simple shell started...\n");
     while(1) {
 	int readed;
 	int cpid;
-	
+
 	write(STDOUT_FILENO, "shell> ",7);
-	
+
 	readed = read(STDIN_FILENO, inbuff, BUFFER_SIZE);
 	if(readed < 0) {
 	    perror("read");
 	    return -1;
 	};
 
-	/* exec write here */
-
-	write(STDOUT_FILENO, inbuff, readed);
+	inbuff[readed] = 0; /* convert to ASCII string */
+	system(inbuff); /* and exec ;-) */
     }
     return 0;
 }
