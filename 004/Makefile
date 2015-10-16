@@ -1,7 +1,8 @@
 all: main
 
 run: main
-	./main
+	# remove unneeded noice
+	./main 2>/dev/null
 
 clean:
 	rm -f main

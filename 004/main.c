@@ -4,58 +4,55 @@
 #include <stdlib.h>
 #include <string.h>
 
-int parent_pid(int pid_code)
+/*
+ * Attention: 
+ * Recursion used!
+ * FixMe: buffers _MUST_ be malloc/free'ed!!!
+ */
+int get_info(int pid)
 {
-    FILE *file_st;
-    char string_st[20];
-    char buf_ppid[10];
-    int  num_ppid =0;
-    char name_dir[1024]; /* ??? */
-
-    sprintf(name_dir,"/proc/%d/status",pid_code);
-  
-    file_st = fopen(name_dir,"r");
-    if (!file_st) {
-	printf("Error open file %s\n", name_dir);
-	return -1;
+    FILE* fd;
+    char  fname[80];
+    char  stat_str[80];
+    int	  parent = -1;
+    
+    /* Not show and not seek parent for PID = 0 */
+    if(pid == 0) {
+	printf("[KERN]\n");
+	return 0;
     }
+    
+    
+    sprintf(fname, "/proc/%d/status", pid);
+    fd = fopen(fname,"r");
+    if (!fd) {
+	printf("%s: \n", fname);
+	perror("fopen");
+	return -1;
+    };
 
-    while (fgets(string_st,sizeof(string_st),file_st)) {
-	if (strstr(string_st,"PPid")) {
-    	    strcpy(buf_ppid,&string_st[6]);
-            num_ppid = atoi(buf_ppid);
+    while (fgets(stat_str,sizeof(stat_str),fd)) {
+	if (strstr(stat_str,"PPid")) {
+            parent = atoi(stat_str + 6);
             break;
 	}	
     }
-  
-    fclose(file_st);
-
-    return num_ppid;
+    
+    printf("[%d]", pid);
+    if(parent == -1) {
+	printf("\n");
+	return 0;
+    } else {
+	printf(" <= ");
+	return get_info(parent);
+    };
 }
 
-int print_tree(int pid_code)
-{
-    char tree_pid[10]; /* 0..65535 ??? */
-    char buf[1024]; /* ??? */
-    int  ppid_code = 0;
-
-    sprintf(tree_pid,"%d",pid_code);
-    while(pid_code)
-    {
-	ppid_code = parent_pid(pid_code);
-	sprintf(buf," <= %d",ppid_code);
-	strcat(tree_pid,buf);
-	pid_code = ppid_code;
-
-	if(!ppid_code)
-    	    printf(" * %s \n",tree_pid);
-    }
-    return 0;
-}
 
 int scan_all_proc(void)
 {
     DIR *dir;
+    int pid;
     struct dirent *entry;
 
     dir = opendir("/proc/");
@@ -65,12 +62,18 @@ int scan_all_proc(void)
         return -1;
     };
 
-    while ( (entry = readdir(dir)) != NULL )
-    {
-        if (atoi(entry->d_name))
-            print_tree(atoi(entry->d_name));
+    while ( (entry = readdir(dir)) != NULL ) {
+        if(sscanf(entry->d_name,"%d",&pid) == 0) {
+    	    fprintf(stderr, "Error convert string (%s) to number (%d)\n",
+        	    entry->d_name, pid);
+    	    continue;
+        };
+        
+        if(get_info(pid)) {
+    	    printf("Error retry process tree for pid %d", pid);
+    	    continue;
+        };
     };
-
     return closedir(dir);
 }
 
@@ -83,7 +86,7 @@ int main(int argc, char** argv, char** env)
     }
 
     if(argc==2)
-	return print_tree(atoi(argv[1]));
+	return get_info(atoi(argv[1]));
     else
 	return scan_all_proc();
 
