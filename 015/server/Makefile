@@ -1,3 +1,5 @@
+CPPFLAGS=-I${PWD}/../include
+LDFLAGS=-lpthread
 all: server
 
 clean:
@@ -6,4 +8,4 @@ clean:
 server: main
 	mv main server
 
-main: main.c
+main: main.c llist.c client.c
