@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 /* project include here */
 #include <chat_proto.h>
 #include <srv_client.h>
@@ -11,8 +15,15 @@ messages_store*	chat_messages;
 client_list*	clients;
 chat_message*	system_head;
 int	port;
+int	bind_skt;
+struct	sockaddr_in srv;
 
-/* FixMe: this is readconfig() function stub*/
+/* ToDo: separate pthread_t for every client */
+pthread_t pid_client;
+
+void* client_pthread(void* arg);
+
+/* FixMe: this is readconfig() function stub */
 int init_basic_params(void)
 {
     chat_messages = NULL;
@@ -110,5 +121,61 @@ int main(int argc, char** argv, char** env)
 	return -1;
     };
 
+    bind_skt = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    
+    if(bind_skt < 0){
+	perror("socket");
+	return -1;
+    }
+    
+    srv.sin_family = AF_INET;
+    srv.sin_port = htons(port);
+    srv.sin_addr.s_addr = htonl(INADDR_ANY);
+    
+    if(bind(bind_skt,(struct sockaddr*)&srv,sizeof(srv)) < 0){
+	perror("bind");
+	return -1;
+    }
+    
+    if(listen(bind_skt,CHAT_MAX_CONN) < 0) {
+	perror("listen");
+	return -1;
+    }
+    
+    fprintf(stdout,"Chat server ready! Wait for client connctions...\n");
+    
+    while(true) {
+	int cli_skt;
+	struct sockaddr_in cli_addr;
+	int tmp = sizeof(struct sockaddr_in);
+	chat_client* client;
+	
+	cli_skt = accept(bind_skt, (struct sockaddr*)&cli_addr, &tmp);
+	
+	if(cli_skt < 0) {
+	    perror("accept");
+	    continue;
+	}
+	fprintf(stdout,"Client conncted...\n");
+	
+	client = (chat_client *)malloc(sizeof(chat_client));
+	if(client == NULL){
+	    perror("malloc");
+	    close(cli_skt);
+	    continue;
+	}
+	
+	fprintf(stdout,"Client prepared...\n");
+	client->skt = cli_skt;
+	client->head = system_head;
+	if(pthread_create(&pid_client, NULL,
+		&client_pthread, (void *)client)){
+	    perror("pthread_create");
+	    close(client->skt);
+	    free(client);
+	}
+	fprintf(stdout,"Client working...\n");
+	
+    }
     return 0;
 }

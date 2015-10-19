@@ -4,7 +4,8 @@
 #include <message_fmt.h>
 #include <stdint.h>
 
-#define CHAT_PROTO_VERSION (0x01)
+#define CHAT_PROTO_VERSION	(0x01)
+#define CHAT_MAX_CONN		(64)
 
 enum {
     /* messages from client to server */

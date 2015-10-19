@@ -23,7 +23,9 @@ void* client_pthread(void* arg)
     /*
      * We got client allocated client structure with init socket and head
      */
-     
+
+
+    fprintf(stdout,"Client pthread: started\n");
     buff = malloc(max_msg_len);
     if(buff == NULL) {
 	perror("malloc (client buffer)");
@@ -31,17 +33,25 @@ void* client_pthread(void* arg)
     };
     
     strcpy(client->alias, DEFAULT_CLIENT_ALIAS);
+    fprintf(stdout,"Client set default name ");
+    fprintf(stdout,DEFAULT_CLIENT_ALIAS);
+    fprintf(stdout,"\n");
     
     client_add_list(client);
+    fprintf(stdout,"Client added to client list\n");
 
     while(true){
 	int count;
 	chat_msg_header* hdr;
 	
-	ioctl(client->skt, FIONREAD, &count);
+	if(ioctl(client->skt, FIONREAD, &count) < 0) {
+	    perror("ioctl (client)");
+	    goto client_exit;
+	}
+	
 	if(count>0) { /* have data from client */
 	    read(client->skt, buff, max_msg_len);
-	    
+
 	    hdr = (chat_msg_header*)buff;
 	    if(hdr->proto < CHAT_PROTO_VERSION) {
 		fprintf(stderr,"Unsupported client version: 0x%02X\n", 
@@ -107,7 +117,7 @@ void* client_pthread(void* arg)
 	
 	if(client->head != system_head) { /* have data for client */
 	    msg_text_message* ans = (msg_text_message*)buff;
-	    
+
 	    if(!client->head->isEmpty){
 		ans->header.proto = CHAT_PROTO_VERSION;
 		ans->header.cmd = MESSAGE;
@@ -119,9 +129,9 @@ void* client_pthread(void* arg)
 	    client->head = client->head->next;
 	}
     }
-    
+
 client_exit:
-    
+
     /*
      * We disconnected from client or other clitical error happend
      */

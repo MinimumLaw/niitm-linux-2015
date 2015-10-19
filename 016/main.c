@@ -152,7 +152,7 @@ int main(int argc, char** argv, char** env)
 	}
 	
 	if((bind_sock=socket(AF_INET, SOCK_STREAM,0)) <0) {
-	    perror("bind");
+	    perror("socket");
 	    return -1;
 	};
 
