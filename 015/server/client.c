@@ -50,7 +50,9 @@ void* client_pthread(void* arg)
 	}
 	
 	if(count>0) { /* have data from client */
-	    read(client->skt, buff, max_msg_len);
+	    int nr;
+	    nr = read(client->skt, buff, max_msg_len);
+	    fprintf(stdout,"Read %d bytes from client.\n", nr);
 
 	    hdr = (chat_msg_header*)buff;
 	    if(hdr->proto < CHAT_PROTO_VERSION) {
@@ -66,8 +68,8 @@ void* client_pthread(void* arg)
 		    strcpy(client->alias,req->alias);
 		    ans->header.cmd = YOUR;
 		    strcpy(ans->alias, client->alias);
-		    write(client->skt, buff, sizeof(msg_your));
-		    fprintf(stdout,"YOUR sended\n");
+		    nr = write(client->skt, buff, sizeof(msg_your));
+		    fprintf(stdout,"YOUR sended (%d)\n",nr);
 		} break;
 	    case SEND_MESSAGE: {
 		    fprintf(stdout,"SEND_MESSAGE received\n");
@@ -75,6 +77,7 @@ void* client_pthread(void* arg)
 		    pthread_mutex_lock(&chat_messages->mutex);
 		    strcpy(system_head->alias,client->alias);
 		    strcpy(system_head->text,req->text);
+		    fprintf(stdout,"Client %s: %s\n", client->alias, req->text);
 		    system_head->isEmpty = false;
 		    client->head = client->head->next;
 		    system_head = system_head->next;
@@ -88,8 +91,8 @@ void* client_pthread(void* arg)
 			msg_online* ans = (msg_online*)buff;
 			ans->header.cmd = ONLINE;
 			strcpy(ans->alias, curr->alias);
-			write(client->skt, buff, sizeof(msg_online));
-			fprintf(stdout,"ONLINE sended\n");
+			nr = write(client->skt, buff, sizeof(msg_online));
+			fprintf(stdout,"ONLINE sended (%d)\n", nr);
 			curr = curr->next;
 		    }
 		    pthread_mutex_unlock(&clients->mutex);
@@ -98,8 +101,8 @@ void* client_pthread(void* arg)
 		    msg_your* ans = (msg_your*)buff;
 		    ans->header.cmd = YOUR;
 		    strcpy(ans->alias, client->alias);
-		    write(client->skt, buff, sizeof(msg_your));
-		    fprintf(stdout,"YOUR sended\n");
+		    nr = write(client->skt, buff, sizeof(msg_your));
+		    fprintf(stdout,"YOUR sended (%d)\n", nr);
 		} break;
 	    case HISTORY: {
 		    msg_history* req = (msg_history*)buff;
@@ -113,8 +116,8 @@ void* client_pthread(void* arg)
 		    ans->header.cmd = MESSAGE;
 		    strcpy(ans->alias, "chat server");
 		    strcpy(ans->text, "By! Have a nice day!\n");
-		    write(client->skt, buff, sizeof(msg_text_message));
-		    fprintf(stdout,"Disconnect message sended\n");
+		    nr = write(client->skt, buff, sizeof(msg_text_message));
+		    fprintf(stdout,"Disconnect message sended (%d)\n", nr);
 		    goto client_exit;
 		} break;
 	    default:
@@ -127,14 +130,19 @@ void* client_pthread(void* arg)
 	    msg_text_message* ans = (msg_text_message*)buff;
 
 	    if(!client->head->isEmpty){
+		int nr;
+
 		ans->header.proto = CHAT_PROTO_VERSION;
 		ans->header.cmd = MESSAGE;
 		strcpy(ans->alias, client->head->alias);
 		strcpy(ans->text, client->head->text);
-		if(write(client->skt, buff, sizeof(msg_text_message)) < 0)
+		nr = write(client->skt, buff, sizeof(msg_text_message));
+		if(nr < 0)
 		    goto client_exit;
-		fprintf(stdout,"Text message sended\n");
-	    }
+		fprintf(stdout,"Text message sended (%d) %s:%s\n",
+			nr, ans->alias, ans->text);
+	    } else
+		fprintf(stdout,"Empty message skipped!\n");
 	    client->head = client->head->next;
 	}
     }

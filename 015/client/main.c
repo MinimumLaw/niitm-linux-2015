@@ -12,7 +12,7 @@
 #include <chat_proto.h>
 
 char buff[1024]; /* FixMe: 640kb should be enough for everyone */
-char srv_buff[ALIAS_LEN + TEXT_LEN + sizeof(chat_msg_header)];
+char srv_buff[2 + ALIAS_LEN + TEXT_LEN + sizeof(chat_msg_header)];
 bool isConnected;
 int skt;
 
@@ -236,8 +236,10 @@ int main(int argc, char** argv, char** env)
 	    }
 
 	    if(isServerInput){
+		int sz;
 		/* FixMe: check read return value */
-		read(skt, srv_buff, sizeof(srv_buff));
+		sz = read(skt, srv_buff, sizeof(srv_buff));
+		printf("Server send %d bytes\n", sz);
 		translate_server_message(srv_buff);
 	    }
 	}
