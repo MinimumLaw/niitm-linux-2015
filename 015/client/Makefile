@@ -1,3 +1,5 @@
+CPPFLAGS=-I${PWD}/../include
+
 all: client
 
 client: main

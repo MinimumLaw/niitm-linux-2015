@@ -165,7 +165,6 @@ int main(int argc, char** argv, char** env)
 	    continue;
 	}
 	
-	fprintf(stdout,"Client prepared...\n");
 	client->skt = cli_skt;
 	client->head = system_head;
 	if(pthread_create(&pid_client, NULL,
@@ -174,7 +173,6 @@ int main(int argc, char** argv, char** env)
 	    close(client->skt);
 	    free(client);
 	}
-	fprintf(stdout,"Client working...\n");
 	
     }
     return 0;
