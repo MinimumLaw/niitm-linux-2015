@@ -195,15 +195,15 @@ int translate_server_message(char* server_data)
 	switch(hdr->cmd) {
 	case ONLINE: {
 		msg_online* msg = (msg_online*)server_data;
-		fprintf(stdout,"ONLINE: %s\n", msg->alias);
+		info("ONLINE: %s\n", msg->alias);
 	    } break;
 	case YOUR: {
 		msg_your* msg = (msg_your*)server_data;
-		fprintf(stdout,"My alias: %s\n", msg->alias);
+		info("ALIAS: %s\n", msg->alias);
 	    } break;
 	case KICK: {
 		msg_kick_message* msg = (msg_kick_message*)server_data;
-		fprintf(stdout,"%s: %s\n", msg->alias, msg->text);
+		info("%s: %s", msg->alias, msg->text);
 		close(skt);
 		skt = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if(skt<0){
@@ -214,7 +214,7 @@ int translate_server_message(char* server_data)
 	    } break;
 	case MESSAGE: {
 		msg_text_message* msg = (msg_text_message*)server_data;
-		fprintf(stdout,"%s: %s\n", msg->alias, msg->text);
+		info("%s: %s", msg->alias, msg->text);
 	    } break;
 	default:
 	    fprintf(stdout, "Unsupported command 0x%02X\n",hdr->cmd);

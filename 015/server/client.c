@@ -40,9 +40,9 @@ void* client_pthread(void* arg)
     };
     
     strcpy(client->alias, DEFAULT_CLIENT_ALIAS);
-    fprintf(stdout,"Client set default name ");
-    fprintf(stdout,DEFAULT_CLIENT_ALIAS);
-    fprintf(stdout,"\n");
+    info("Client set default name ");
+    info(DEFAULT_CLIENT_ALIAS);
+    info("\n");
     
     client_add_list(client);
     info("Client added to client list\n");
@@ -136,7 +136,7 @@ void* client_pthread(void* arg)
 		    goto client_exit;
 		} break;
 	    default:
-		fprintf(stderr,"Unsupported client cmd: 0x%02X\n", hdr->cmd);
+		info("Unsupported client cmd: 0x%02X\n", hdr->cmd);
 		break;
 	    };
 	}
@@ -154,11 +154,11 @@ void* client_pthread(void* arg)
 		nr = write(client->skt, buff, sizeof(msg_text_message));
 		if(nr < 0)
 		    goto client_exit;
-		fprintf(stdout,"Text message sended (%d) %s:%s\n",
+		debug("Text message sended (%d) %s:%s\n",
 			nr, ans->alias, ans->text);
 		pthread_yield();
 	    } else
-		fprintf(stdout,"Empty message skipped!\n");
+		debug("Empty message skipped!\n");
 	    client->head = client->head->next;
 	}
     }
@@ -171,6 +171,6 @@ client_exit:
     free(buff);
     client_remove_list(client);
     free(client);
-    fprintf(stdout,"Client disconnected/removed\n");
+    info("Client disconnected/removed\n");
     return 0;
 }
