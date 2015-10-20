@@ -1,3 +1,5 @@
+export CPPFLAGS=-I${PWD}/include
+
 all:
 	make -C client all
 	make -C server all

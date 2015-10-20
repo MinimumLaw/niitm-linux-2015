@@ -1,4 +1,4 @@
-CPPFLAGS=-I${PWD}/../include
+CPPFLAGS+=-I${PWD}/../include
 LDFLAGS=-lpthread
 all: server
 

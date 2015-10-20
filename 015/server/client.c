@@ -60,14 +60,17 @@ void* client_pthread(void* arg)
 	    }
 	    switch(hdr->cmd) {
 	    case SET_ALIAS: {
+		    fprintf(stdout,"SET_ALIAS received\n");
 		    msg_set_alias* req = (msg_set_alias*)buff;
 		    msg_your* ans = (msg_your*)buff;
 		    strcpy(client->alias,req->alias);
 		    ans->header.cmd = YOUR;
 		    strcpy(ans->alias, client->alias);
 		    write(client->skt, buff, sizeof(msg_your));
+		    fprintf(stdout,"YOUR sended\n");
 		} break;
 	    case SEND_MESSAGE: {
+		    fprintf(stdout,"SEND_MESSAGE received\n");
 		    msg_send_message* req = (msg_send_message*)buff;
 		    pthread_mutex_lock(&chat_messages->mutex);
 		    strcpy(system_head->alias,client->alias);
@@ -79,11 +82,14 @@ void* client_pthread(void* arg)
 		} break;
 	    case LIST_ALIASES: { /* who online */
 		    chat_client* curr = clients->list;
+		    fprintf(stdout,"LIST_ALIASES received\n");
 		    pthread_mutex_lock(&clients->mutex);
 		    while(curr){
 			msg_online* ans = (msg_online*)buff;
 			ans->header.cmd = ONLINE;
 			strcpy(ans->alias, curr->alias);
+			write(client->skt, buff, sizeof(msg_online));
+			fprintf(stdout,"ONLINE sended\n");
 			curr = curr->next;
 		    }
 		    pthread_mutex_unlock(&clients->mutex);
@@ -93,6 +99,7 @@ void* client_pthread(void* arg)
 		    ans->header.cmd = YOUR;
 		    strcpy(ans->alias, client->alias);
 		    write(client->skt, buff, sizeof(msg_your));
+		    fprintf(stdout,"YOUR sended\n");
 		} break;
 	    case HISTORY: {
 		    msg_history* req = (msg_history*)buff;
@@ -107,6 +114,7 @@ void* client_pthread(void* arg)
 		    strcpy(ans->alias, "chat server");
 		    strcpy(ans->text, "By! Have a nice day!\n");
 		    write(client->skt, buff, sizeof(msg_text_message));
+		    fprintf(stdout,"Disconnect message sended\n");
 		    goto client_exit;
 		} break;
 	    default:
@@ -125,6 +133,7 @@ void* client_pthread(void* arg)
 		strcpy(ans->text, client->head->text);
 		if(write(client->skt, buff, sizeof(msg_text_message)) < 0)
 		    goto client_exit;
+		fprintf(stdout,"Text message sended\n");
 	    }
 	    client->head = client->head->next;
 	}
@@ -138,5 +147,6 @@ client_exit:
     free(buff);
     client_remove_list(client);
     free(client);
+    fprintf(stdout,"Client disconnected/removed\n");
     return 0;
 }

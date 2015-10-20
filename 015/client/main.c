@@ -102,6 +102,33 @@ int translate_user_message(char* user_data)
 	    } else {
 		fprintf(stdout,"Require new alias!\n");
 	    }
+    } else if (!strncmp(cmd,"history",7)) {
+	    msg_history* msg = (msg_history*)srv_buff;
+	    int nr;
+
+	    msg->header.proto = CHAT_PROTO_VERSION;
+	    msg->header.cmd = HISTORY;
+
+	    arg = strtok(NULL,delim);
+	    if(arg) {
+		nr = atoi(arg); /* FixMe: sscanf must be here */
+
+		if(nr>1) {
+		    if(nr>MAX_HISTORY_LEN)
+			nr=MAX_HISTORY_LEN;
+		    msg->deep = nr;
+		    if(isConnected){
+			write(skt,srv_buff,sizeof(msg_history));
+			fprintf(stdout,"Send last %d message request\n", nr);
+		    } else {
+			fprintf(stdout,"Connect first!\n");
+		    }
+		} else {
+		    fprintf(stdout,"Hystory argument error!\n");
+		}
+	    } else {
+		fprintf(stdout,"Require number of messages!\n");
+	    }
     } else if (!strncmp(cmd,"whoami",6)) {
 	    msg_get_alias* msg = (msg_get_alias*)srv_buff;
 	    
