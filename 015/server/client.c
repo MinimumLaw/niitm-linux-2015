@@ -76,6 +76,7 @@ void* client_pthread(void* arg)
 		    ans->header.cmd = YOUR;
 		    strcpy(ans->alias, client->alias);
 		    nr = write(client->skt, buff, sizeof(msg_your));
+		    pthread_yield();
 		    debug("YOUR sended (%d bytes): %s\n",nr, client->alias);
 		} break;
 	    case SEND_MESSAGE: {
@@ -100,6 +101,7 @@ void* client_pthread(void* arg)
 			strcpy(ans->alias, curr->alias);
 			nr = write(client->skt, buff, sizeof(msg_online));
 			debug("ONLINE %s sended (%d)\n", curr->alias, nr);
+			pthread_yield();
 			curr = curr->next;
 		    }
 		    pthread_mutex_unlock(&clients->mutex);
@@ -110,6 +112,7 @@ void* client_pthread(void* arg)
 		    ans->header.cmd = YOUR;
 		    strcpy(ans->alias, client->alias);
 		    nr = write(client->skt, buff, sizeof(msg_your));
+		    pthread_yield();
 		    debug("YOUR %s sended (%d)\n", client->alias, nr);
 		} break;
 	    case HISTORY: {
@@ -128,6 +131,7 @@ void* client_pthread(void* arg)
 		    strcpy(ans->alias, "chat server");
 		    strcpy(ans->text, "By! Have a nice day!\n");
 		    nr = write(client->skt, buff, sizeof(msg_kick_message));
+		    pthread_yield();
 		    debug("Kick message sended (%d)\n", nr);
 		    goto client_exit;
 		} break;
@@ -152,6 +156,7 @@ void* client_pthread(void* arg)
 		    goto client_exit;
 		fprintf(stdout,"Text message sended (%d) %s:%s\n",
 			nr, ans->alias, ans->text);
+		pthread_yield();
 	    } else
 		fprintf(stdout,"Empty message skipped!\n");
 	    client->head = client->head->next;

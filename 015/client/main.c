@@ -19,10 +19,10 @@
 #define info(args...)	fprintf(stdout, ##args)
 #define error(args...)	fprintf(stdout, ##args)
 
-/* FixMe: 640kb should be enough for everyone */
-char buff[1024];
-/* 2 - alis and text \0 and FixMe: 5 gap */
-char srv_buff[2 + ALIAS_LEN + TEXT_LEN + sizeof(chat_msg_header) + 5];
+/* FixMe: 640kb should be enough for everyone :-) */
+#define BUFFER_SIZE	(578)
+char buff[BUFFER_SIZE];
+char srv_buff[BUFFER_SIZE];
 bool isConnected;
 int skt;
 
@@ -258,7 +258,7 @@ int main(int argc, char** argv, char** env)
 	    if(isServerInput){
 		int sz;
 		/* FixMe: check read return value */
-		sz = read(skt, srv_buff, sizeof(srv_buff));
+		sz = read(skt, srv_buff, BUFFER_SIZE);
 		debug("Server send %d bytes\n", sz);
 		translate_server_message(srv_buff);
 	    }
@@ -271,7 +271,7 @@ int main(int argc, char** argv, char** env)
 	}
 
 	if(isUserInput){
-	    fgets(buff,sizeof(buff)-1,stdin);
+	    fgets(buff,BUFFER_SIZE,stdin);
 	    translate_user_message(buff);
 	    write(STDOUT_FILENO,"CHAT > ", 7);;
 	}
