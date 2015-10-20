@@ -19,6 +19,7 @@ enum {
     ONLINE = 0x81,
     YOUR = 0x82,
     MESSAGE = 0x83,
+    KICK = 0x84,
 };
 
 /* common message header */
@@ -73,6 +74,13 @@ typedef struct {
     chat_msg_header header;
     char	alias[ALIAS_LEN+1];
 } msg_your;
+
+/* KICK sended on disconnect request */
+typedef struct {
+    chat_msg_header header;
+    char	alias[ALIAS_LEN+1];
+    char	text[TEXT_LEN+1];
+} msg_kick_message;
 
 /* TEXT_MESSAGE sended async, on new messages on server side detected */
 typedef struct {
