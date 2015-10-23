@@ -23,7 +23,6 @@ int main(int argc, char** argv, char** env)
 			printf("ENV fail\n");
 			return -1;
 		}
-		
 		*env++;
 	}
 

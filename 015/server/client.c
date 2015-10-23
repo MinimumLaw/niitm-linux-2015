@@ -38,24 +38,24 @@ void* client_pthread(void* arg)
 	perror("malloc (client buffer)");
 	return NULL;
     };
-    
+
     strcpy(client->alias, DEFAULT_CLIENT_ALIAS);
     info("Client set default name ");
     info(DEFAULT_CLIENT_ALIAS);
     info("\n");
-    
+
     client_add_list(client);
     info("Client added to client list\n");
 
     while(true){
 	int count;
 	chat_msg_header* hdr;
-	
+
 	if(ioctl(client->skt, FIONREAD, &count) < 0) {
 	    perror("ioctl (client)");
 	    goto client_exit;
 	}
-	
+
 	if(count>0) { /* have data from client */
 	    int nr;
 	    nr = read(client->skt, buff, max_msg_len);

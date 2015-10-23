@@ -15,14 +15,13 @@ int get_info(int pid)
     char  fname[80];
     char  stat_str[80];
     int	  parent = -1;
-    
+
     /* Not show and not seek parent for PID = 0 */
     if(pid == 0) {
 	printf("[KERN]\n");
 	return 0;
     }
-    
-    
+
     sprintf(fname, "/proc/%d/status", pid);
     fd = fopen(fname,"r");
     if (!fd) {
@@ -35,9 +34,9 @@ int get_info(int pid)
 	if (strstr(stat_str,"PPid")) {
             parent = atoi(stat_str + 6);
             break;
-	}	
+	}
     }
-    
+
     printf("[%d]", pid);
     if(parent == -1) {
 	printf("\n");
@@ -64,15 +63,15 @@ int scan_all_proc(void)
 
     while ( (entry = readdir(dir)) != NULL ) {
         if(sscanf(entry->d_name,"%d",&pid) == 0) {
-    	    fprintf(stderr, "Error convert string (%s) to number (%d)\n",
-        	    entry->d_name, pid);
-    	    continue;
+		fprintf(stderr, "Error convert string (%s) to number (%d)\n",
+		    entry->d_name, pid);
+		continue;
         };
-        
+
         if(get_info(pid)) {
-    	    printf("Error retry process tree for pid %d", pid);
-    	    continue;
-        };
+	    printf("Error retry process tree for pid %d", pid);
+	    continue;
+	};
     };
     return closedir(dir);
 }

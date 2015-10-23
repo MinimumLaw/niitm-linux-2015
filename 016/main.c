@@ -115,7 +115,7 @@ void http_proc(int fd)
 		send_error(fd, 404);
 		return;
 	}
-	
+
 	/* get requested file len, and seek to begin of file  */
 	len = lseek(file_fd, (off_t)0, SEEK_END);
 	lseek(file_fd, (off_t)0, SEEK_SET);
@@ -125,7 +125,7 @@ void http_proc(int fd)
 		"Content-Length: %ld\r\n"
 		"Connection: close\r\n"
 		"Content-Type: %s\r\n\r\n",
-    	    len, fstr);
+		len, fstr);
 	printf("Server answer:\n%s\n", buffer);
 	write(fd,buffer,strlen(buffer));
 
@@ -150,7 +150,7 @@ int main(int argc, char** argv, char** env)
 		printf("ERROR: Is DOCROOT %s correct?\n",argv[2]);
 		return -1;
 	}
-	
+
 	if((bind_sock=socket(AF_INET, SOCK_STREAM,0)) <0) {
 	    perror("socket");
 	    return -1;
@@ -161,7 +161,7 @@ int main(int argc, char** argv, char** env)
 		printf("Port must be in range 1 to 65535!\n");
 		return -1;
 	};
-	
+
 	bind_addr.sin_family = AF_INET;
 	bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	bind_addr.sin_port = htons(port);
@@ -181,13 +181,13 @@ int main(int argc, char** argv, char** env)
 
 	while(1) { /* forever */
 	    int tmp = sizeof(list_addr);
-	    
+
 	    list_sock = accept(bind_sock, (struct sockaddr*)&list_addr, &tmp);
 	    if(list_sock < 0){
 		perror("accept");
 		return -1;
 	    }
-	    
+
 	    /* FixMe: this time is one-stream server */
 	    http_proc(list_sock);
 

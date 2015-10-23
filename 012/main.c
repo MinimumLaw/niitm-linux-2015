@@ -105,9 +105,9 @@ void* bear_pthread(void* arg)
 bool start_game(game_board *brd)
 {
     int tmp;
-    
+
     brd->need_exit = false;
-    
+
     printf("DEBUG: Create bears...\n");
     for(tmp=0; tmp<brd->bears; tmp++) {
 	printf("DEBUG: bear %d create ", tmp+1);
@@ -131,7 +131,7 @@ bool start_game(game_board *brd)
 	}
 	printf("DONE\n");
     }
-    
+
     return true;
 }
 
@@ -174,10 +174,10 @@ void show_statistics(game_board *brd)
 void interrupt_callback(int signum)
 {
     int tmp;
-    
+
     printf("Termination required.\n");
     brd.need_exit = true;
-    
+
     printf("DEBUG: Killing bears...\n");
     for(tmp=0; tmp<brd.bears; tmp++) {
 	printf("DEBUG: bear %d kill ", tmp+1);
@@ -197,7 +197,7 @@ void interrupt_callback(int signum)
 	}
 	printf("DONE\n");
     }
-    
+
     free(brd.board);
     free(brd.p_bulls);
     free(brd.p_bears);
@@ -211,13 +211,13 @@ int main(int argc, char** argv, char** env)
 	printf("USAGE:\n\t%s <bulls> <bears> <size>\n", argv[0]);
 	return -1;
     };
-    
+
     signal(SIGINT, interrupt_callback);
-    
+
     brd.bulls = atoi(argv[1]);
     brd.bears = atoi(argv[2]);
     brd.size  = atoi(argv[3]);
-    
+
     if(brd.bulls < 1) {
 	printf("ERROR: 1 or more bulls required!\n"); return -1; }
     if(brd.bulls < 1) {

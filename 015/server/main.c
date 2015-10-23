@@ -88,7 +88,7 @@ int allocate_required_memory(void)
 
     temp = curr; /* curr - last message in buff */
     while(temp->prev) temp = temp->prev; /* temp - first */
-    
+
     curr->next = temp;	/* create ring buffer for messages */
     temp->prev = curr;	/* with max deep = store_len */
     chat_messages->messages = curr;
@@ -122,49 +122,49 @@ int main(int argc, char** argv, char** env)
     };
 
     bind_skt = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    
+
     if(bind_skt < 0){
 	perror("socket");
 	return -1;
     }
-    
+
     srv.sin_family = AF_INET;
     srv.sin_port = htons(port);
     srv.sin_addr.s_addr = htonl(INADDR_ANY);
-    
+
     if(bind(bind_skt,(struct sockaddr*)&srv,sizeof(srv)) < 0){
 	perror("bind");
 	return -1;
     }
-    
+
     if(listen(bind_skt,CHAT_MAX_CONN) < 0) {
 	perror("listen");
 	return -1;
     }
-    
+
     fprintf(stdout,"Chat server ready! Wait for client connctions...\n");
-    
+
     while(true) {
 	int cli_skt;
 	struct sockaddr_in cli_addr;
 	int tmp = sizeof(struct sockaddr_in);
 	chat_client* client;
-	
+
 	cli_skt = accept(bind_skt, (struct sockaddr*)&cli_addr, &tmp);
-	
+
 	if(cli_skt < 0) {
 	    perror("accept");
 	    continue;
 	}
 	fprintf(stdout,"Client conncted...\n");
-	
+
 	client = (chat_client *)malloc(sizeof(chat_client));
 	if(client == NULL){
 	    perror("malloc");
 	    close(cli_skt);
 	    continue;
 	}
-	
+
 	client->skt = cli_skt;
 	client->head = system_head;
 	if(pthread_create(&pid_client, NULL,
@@ -173,7 +173,7 @@ int main(int argc, char** argv, char** env)
 	    close(client->skt);
 	    free(client);
 	}
-	
+
     }
     return 0;
 }

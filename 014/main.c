@@ -71,16 +71,14 @@ int main(int argc, char** argv, char** env)
 	char buff[80];
 	fd_set rs, ws, xs;
 	int ret,rd,wr;
-	
-	
+
 	FD_ZERO(&rs);
 	FD_SET(serv, &rs);
 	FD_SET(STDIN_FILENO, &rs);
-	
+
 	FD_ZERO(&xs);
 	FD_ZERO(&ws);
-	
-	
+
 	ret = select(sock + 1, &rs, &ws, &xs, NULL);
 	if(ret < 0) {
 	    perror("select");
@@ -89,7 +87,7 @@ int main(int argc, char** argv, char** env)
 
 	if(FD_ISSET(STDIN_FILENO,&rs)) {
 	    int ret = read(STDIN_FILENO,&buff, sizeof(buff));
-	    
+
 	    if(ret < 0) {
 		perror("stdin read");
 	    } else if (ret > 0) {
@@ -100,7 +98,7 @@ int main(int argc, char** argv, char** env)
 	    }
 	} else if (FD_ISSET(serv, &rs)) {
 	    int ret = read(serv, &buff, sizeof(buff));
-	    
+
 	    if(ret < 0) {
 		perror("sock read");
 	    } else if (ret > 0) {
@@ -114,5 +112,4 @@ int main(int argc, char** argv, char** env)
 	    continue;
 	}
     }
-    
 }

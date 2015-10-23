@@ -24,7 +24,7 @@ int get_info(int pid)
 
 	if(!strcmp(pthreads->d_name,".") ||
 		!strcmp(pthreads->d_name,"..")) continue;
-	
+
 	if(sscanf(pthreads->d_name,"%d",&tpid) == 0) {
 	    printf("Shit! (%s : %d)\n",pthreads->d_name,  pid);
 	    return -1;
@@ -51,8 +51,8 @@ int scan_all_proc(void)
     dir = opendir("/proc/");
 
     if (!dir) {
-        perror("diropen");
-        return -1;
+	perror("diropen");
+	return -1;
     };
 
     while ( (entry = readdir(dir)) != NULL ) {
@@ -60,16 +60,16 @@ int scan_all_proc(void)
 	if(!strcmp(entry->d_name,".") ||
 		!strcmp(entry->d_name,"..")) continue;
 
-        if(sscanf(entry->d_name,"%d",&pid) == 0) {
-    	    fprintf(stderr, "Error convert string (%s) to number (%d)\n",
-        	    entry->d_name, pid);
-    	    continue;
-        };
-        
-        if(get_info(pid)) {
-    	    printf("Error retry pthread list for pid %d", pid);
-    	    continue;
-        };
+	if(sscanf(entry->d_name,"%d",&pid) == 0) {
+	    fprintf(stderr, "Error convert string (%s) to number (%d)\n",
+		    entry->d_name, pid);
+	    continue;
+	};
+
+	if(get_info(pid)) {
+	    printf("Error retry pthread list for pid %d", pid);
+	    continue;
+	};
     };
     return closedir(dir);
 }
@@ -90,4 +90,3 @@ int main(int argc, char** argv, char** env)
     /* unreach */
     return 0;
 }
-

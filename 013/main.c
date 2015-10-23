@@ -27,7 +27,7 @@ int open_in(char* port_number)
     bind_addr.sin_family = AF_INET;
     bind_addr.sin_port = htons(port);
     bind_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    
+
     if(bind(ret, (struct sockaddr*)&bind_addr, sizeof(struct sockaddr_in)) < 0) {
 	perror("bind");
 	return -1;
@@ -51,7 +51,7 @@ int open_out(char* port_number)
     conn_addr.sin_family = AF_INET;
     conn_addr.sin_port = htons(port);
     conn_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    
+
     if(connect(ret, (struct sockaddr*)&conn_addr, sizeof(struct sockaddr_in)) < 0) {
 	perror("connect");
 	return -1;
@@ -78,22 +78,20 @@ int main(int argc, char** argv, char** env)
 	perror("Create OUT connection (connect)");
 	return errno;
     };
-    
+
     /* chat here */
     while(1) {
 	char buff[80];
 	fd_set rs, ws, xs;
 	int ret,rd,wr;
-	
-	
+
 	FD_ZERO(&rs);
 	FD_SET(fd_in, &rs);
 	FD_SET(STDIN_FILENO, &rs);
-	
+
 	FD_ZERO(&xs);
 	FD_ZERO(&ws);
-	
-	
+
 	ret = select(fd_out + 1, &rs, &ws, &xs, NULL);
 	if(ret < 0) {
 	    perror("select");
@@ -110,7 +108,7 @@ int main(int argc, char** argv, char** env)
 	    printf("Khm... Shit happened...\n");
 	    continue;
 	}
-	
+
 	ret = read(rd,&buff, sizeof(buff));
 	if(ret < 0) {
 	    perror("read");
@@ -121,5 +119,4 @@ int main(int argc, char** argv, char** env)
 	    }
 	}
     }
-    
 }

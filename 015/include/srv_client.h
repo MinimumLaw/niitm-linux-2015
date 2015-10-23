@@ -13,7 +13,7 @@ typedef struct tag_ClientList {
 } chat_client;
 
 typedef struct {
-    chat_client* list;
+    chat_client*	list;
     pthread_mutex_t	mutex;
 } client_list;
 

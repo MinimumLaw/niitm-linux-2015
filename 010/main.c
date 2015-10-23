@@ -15,7 +15,7 @@ int main(int argc, char** argv, char** env)
 	printf("USAGE:\n\t%s <string> <filename>\n", argv[0]);
 	return -1;
     }
-    
+
     while(fgets(buff, STRLEN - 1, stdin) != NULL) {
 	restart = buff;
 	while( (restart = strstr(restart, argv[1])) != NULL ) {
@@ -25,16 +25,16 @@ int main(int argc, char** argv, char** env)
 	fputs(buff, stdout);
     }
     fclose(stdout); /* for next proc in pipe */
-    
+
 
     if((fd = fopen(argv[2],"w")) == NULL) {
 	perror(argv[2]);
 	return -1;
     };
-    
+
     fprintf(fd,"%d\n",count);
-    
+
     fclose(fd);
-    
+
     return 0;
 }

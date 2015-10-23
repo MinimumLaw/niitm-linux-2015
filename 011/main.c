@@ -16,11 +16,10 @@ int open_in(char* name)
     if(ret < 0) {
 	printf("DEBUG: %s not present. Create\n", name);
 	umask(0);
-        ret = mkfifo(name, 0666);
-        if(ret < 0) return ret;
+	ret = mkfifo(name, 0666);
+	if(ret < 0) return ret;
 	printf("DEBUG: %s Created\n", name);
-        return open_in(name);
-        
+	return open_in(name);
     }
     printf("DEBUG: %s open success\n", name);
     return ret;
@@ -32,10 +31,10 @@ int open_out(char* name)
     if(ret < 0) {
 	printf("DEBUG: %s not present. Create\n", name);
 	umask(0);
-        ret = mkfifo(name, 0666);	
+	ret = mkfifo(name, 0666);
 	printf("DEBUG: %s Created\n", name);
-        if(ret < 0) return ret;
-        return open_out(name);
+	if(ret < 0) return ret;
+	return open_out(name);
     }
     printf("DEBUG: %s open success\n", name);
     return ret;
@@ -59,22 +58,20 @@ int main(int argc, char** argv, char** env)
 	perror("out pipe");
 	return errno;
     };
-    
+
     /* chat here */
     while(1) {
 	char buff[80];
 	fd_set rs, ws, xs;
 	int ret,rd,wr;
-	
-	
+
 	FD_ZERO(&rs);
 	FD_SET(fd_in, &rs);
 	FD_SET(STDIN_FILENO, &rs);
-	
+
 	FD_ZERO(&xs);
 	FD_ZERO(&ws);
-	
-	
+
 	ret = select(fd_out + 1, &rs, &ws, &xs, NULL);
 	if(ret < 0) {
 	    perror("select");
@@ -91,7 +88,7 @@ int main(int argc, char** argv, char** env)
 	    printf("Khm... Shit happened...\n");
 	    continue;
 	}
-	
+
 	ret = read(rd,&buff, sizeof(buff));
 	if(ret < 0) {
 	    perror("read");
@@ -102,5 +99,4 @@ int main(int argc, char** argv, char** env)
 	    }
 	}
     }
-    
 }

@@ -69,7 +69,7 @@ int main(int argc, char** argv, char** env)
 	params[tmp].delta = end/iterations;
 	begin += params[tmp].delta; /* new begin/ actual end calculations */
 	params[tmp].end = begin;
-	
+
 	if(pthread_create(&pth_pid[tmp], NULL, &summator, &params[tmp])) {
 	    perror("pthread_create");
 	    return -1;
@@ -89,7 +89,7 @@ int main(int argc, char** argv, char** env)
     /* free allocated memory */
     free(params);
     free(pth_pid);
-    
+
     printf("Calculated result is : %lf\n", answer);
 
     return 0;
