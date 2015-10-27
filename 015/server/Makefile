@@ -1,5 +1,5 @@
 CPPFLAGS+=-I${PWD}/../include
-LDFLAGS=-lpthread
+LDFLAGS=-pthread
 all: server
 
 clean:
