@@ -220,9 +220,9 @@ int main(int argc, char** argv, char** env)
 
     if(brd.bulls < 1) {
 	printf("ERROR: 1 or more bulls required!\n"); return -1; }
-    if(brd.bulls < 1) {
+    if(brd.bears < 1) {
 	printf("ERROR: 1 or more bears required!\n"); return -1; }
-    if(brd.bulls < 1) {
+    if(brd.size < 1) {
 	printf("ERROR: Size must be 1 or higher!n"); return -1; }
 
     if(!init_game_board(&brd)) {
