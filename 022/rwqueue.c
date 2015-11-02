@@ -174,9 +174,9 @@ void interrupt_callback(int signum)
     if(close(fd_rules) < 0)
 	perror("close:rules");
 
-    if(unlink(SHM_MOUNT_PATH SHM_BOARD) < 0)
+    if(shm_unlink(SHM_BOARD) < 0)
 	perror("unlink::board");
-    if(unlink(SHM_MOUNT_PATH SHM_RULES) < 0)
+    if(shm_unlink(SHM_RULES) < 0)
 	perror("unlink::rules");
 
     exit(0);

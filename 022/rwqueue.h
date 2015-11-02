@@ -1,9 +1,6 @@
 #ifndef _INCLUDE_RWQUEUE_H_
 #define _INCLUDE_RWQUEUE_H_
 
-/* unlink require full path */
-#define SHM_MOUNT_PATH "/dev/shm/"
-
 #define SHM_BOARD "me.noip.minimumlaw.rwqueue.board.bin"
 #define SHM_RULES "me.noip.minimumlaw.rwqueue.rules.bin"
 
