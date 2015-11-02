@@ -11,18 +11,13 @@
 #include "rwqueue.h"
 
 game_rules	*rules;
-game_board	board;
+game_board	*board;
 
-int show_statistics(game_rules *rules, game_board board)
+int show_statistics(game_rules *rules, game_board *board)
 {
     int x,e,u,tmp;
 
     x=e=u=tmp=0;
-
-    if(pthread_mutex_lock(&rules->mutex)) {
-	perror("stat:lock()");
-	return -1;
-    }
 
     while(tmp<rules->size){
 	switch(board[tmp++]) {
@@ -34,13 +29,10 @@ int show_statistics(game_rules *rules, game_board board)
 	}
     }
 
-    printf("Empty: %d, Bears: %d, Bulls: %d, Total: %d\n",
+    printf("Rules: Bears: %d, Bulls: %d, Board size: %d\n",
+	rules->bears, rules->bulls, rules->size);
+    printf("Status: Empty: %d, Bears: %d, Bulls: %d, Total: %d\n",
 	x, e, u, x+e+u);
-
-    if(pthread_mutex_unlock(&rules->mutex)) {
-	perror("stat:unlock()");
-	return -1;
-    }
 
     return 0;
 }
@@ -57,7 +49,7 @@ int main(int argc, char** argv, char** env)
 	return -1;
     };
     
-    rules = mmap(NULL, sizeof(game_rules), PROT_READ | PROT_WRITE, MAP_SHARED, rule_fd, 0);
+    rules = mmap(NULL, sizeof(game_rules), PROT_READ | PROT_WRITE, MAP_PRIVATE, rule_fd, 0);
     if(rules == MAP_FAILED){
 	perror("mmap::rules");
 	return -1;
@@ -70,7 +62,7 @@ int main(int argc, char** argv, char** env)
 	return -1;
     };
     
-    board = mmap(NULL, rules->size, PROT_READ, MAP_PRIVATE, rule_fd, 0);
+    board = mmap(NULL, rules->size, PROT_READ, MAP_PRIVATE, board_fd, 0);
     if(board == MAP_FAILED){
 	perror("mmap::board");
 	return -1;
