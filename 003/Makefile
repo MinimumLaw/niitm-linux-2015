@@ -12,4 +12,4 @@ libHello.so: libHello.c libHello.h
 		${CC} -o libHello.so -fPIC -shared libHello.c
 
 hello: main.c
-		${CC} -o hello -L${PWD} -ldl main.c
+		${CC} -o hello main.c -L${PWD} -ldl

@@ -9,6 +9,7 @@ run: main
 	./main 10 20
 
 main: main.c
+	${CC} -o main main.c ${CFLAGS} ${LDFLAGS}
 
 clean:
 	rm -f main
