@@ -48,7 +48,7 @@ int main(int argc, char** argv, char** env)
 	printf("M.b. not running?\n");
 	return -1;
     };
-    
+
     rules = mmap(NULL, sizeof(game_rules), PROT_READ | PROT_WRITE, MAP_PRIVATE, rule_fd, 0);
     if(rules == MAP_FAILED){
 	perror("mmap::rules");
@@ -61,7 +61,7 @@ int main(int argc, char** argv, char** env)
 	printf("M.b. not creating? Try again!\n");
 	return -1;
     };
-    
+
     board = mmap(NULL, rules->size, PROT_READ, MAP_PRIVATE, board_fd, 0);
     if(board == MAP_FAILED){
 	perror("mmap::board");
