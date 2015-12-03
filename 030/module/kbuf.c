@@ -1,10 +1,10 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
-
 #include <linux/slab.h>
 #include <linux/fs.h>
-
 #include <linux/uaccess.h>
+
+#include "kbuf_ioctl.h"
 
 #define DEV_NAME	"kbuf"
 #define BUF_SZ		1024
@@ -116,9 +116,21 @@ ssize_t mod_write(struct file *f, const char __user *ubuff, size_t sz, loff_t *o
 
 long mod_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 {
+    int ret = -1;
+
     if(stat) stat->ioctl++;
     printk(KERN_INFO "Module ioctl\n");
-    return 0;
+
+    switch (cmd) {
+    case IOKBUF_STAT:
+	show_stat(stat);
+	ret = 0;
+	break;
+    default:
+	printk(KERN_ERR "Unsupported IOCTL cmd %d\n", cmd);
+    }
+
+    return ret;
 }
 
 unsigned int mod_poll(struct file *f, struct poll_table_struct *pt)
@@ -134,7 +146,7 @@ struct file_operations kbuf_fops = {
     .release = mod_release,
     .read = mod_read,
     .write = mod_write,
-    .compat_ioctl = mod_ioctl,
+    .unlocked_ioctl = mod_ioctl,
     .poll = mod_poll,
 };
 

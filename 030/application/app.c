@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "./../module/kbuf_ioctl.h"
+
 const char dev_name[] = "./kbuf";
 
 int wr;
@@ -26,7 +28,7 @@ int main(int argc, char** argv, char** env)
     }
     printf("Device file %s opened\n", dev_name);
 
-    wr = write(fd,message,sizeof(message));
+    wr = write(fd,message,strlen(message));
     printf("Write to device %s %d bytes\n",
 	dev_name, wr);
 
@@ -46,6 +48,12 @@ int main(int argc, char** argv, char** env)
 	dev_name, wr);
 
     printf("Contents: %s\n", buff);
+
+    wr = ioctl(fd, IOKBUF_STAT);
+    if(wr < 0)
+	perror("ioctl");
+    else
+        printf("Statistics writen to syslog ioctl() return %d\n", wr);
 
     close(fd);
     printf("Device file %s closed\n", dev_name);

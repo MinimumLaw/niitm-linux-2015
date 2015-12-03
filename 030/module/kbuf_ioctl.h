@@ -1,0 +1,6 @@
+#ifndef _INCLUDE_KBUF_IOCTL_H_
+#define _INCLUDE_KBUF_IOCTL_H_
+
+#define IOKBUF_STAT	0x1001
+
+#endif
