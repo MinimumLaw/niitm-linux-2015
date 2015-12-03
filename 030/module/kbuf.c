@@ -19,6 +19,7 @@ typedef struct {
     int	writen;
     int	poll;
     int ioctl;
+    int fp; /* file pointer */
 } kbuf_stat;
 
 kbuf_stat *stat = NULL;
@@ -33,6 +34,7 @@ void show_stat(kbuf_stat *stat)
 	printk(KERN_INFO "writen: %d\n", stat->writen);
 	printk(KERN_INFO "poll:   %d\n", stat->poll);
 	printk(KERN_INFO "ioctl:  %d\n", stat->ioctl);
+	printk(KERN_INFO "FP at:  %d\n", stat->fp);
     } else {
 	printk(KERN_ERR "Sorry, no statistics present.\n");
     }
@@ -41,6 +43,8 @@ void show_stat(kbuf_stat *stat)
 int mod_open(struct inode *i, struct file *f)
 {
     if(stat) stat->opened++;
+
+    stat->fp = 0; /* set file pointer to 0 on open */
     printk(KERN_INFO "Module open\n");
     return 0;
 }
@@ -48,6 +52,7 @@ int mod_open(struct inode *i, struct file *f)
 int mod_release(struct inode *i, struct file *f)
 {
     if(stat) stat->closed++;
+
     printk(KERN_INFO "Module release\n");
     return 0;
 }
@@ -60,7 +65,23 @@ ssize_t mod_read(struct file *f, char __user *ubuff, size_t sz, loff_t *ofs)
 
     if(!buff) return -EINVAL;
 
-    printk(KERN_INFO "Module read return %d\n", real_rd);
+    if(*ofs > BUF_SZ) {
+	printk(KERN_ERR "Offset to long for read!\n");
+	return -EINVAL;
+    };
+
+    /* calculate real read size */
+    real_rd = 
+	((*ofs + stat->fp +sz) > BUF_SZ) ? (BUF_SZ - stat->fp - *ofs) : sz;
+
+    if(copy_to_user(ubuff, (void *)(buff + *ofs), real_rd)) {
+	printk(KERN_ERR "copy_to_user() failed\n");
+	return -EFAULT;
+    }
+
+    printk(KERN_INFO "Module read return %zd\n", real_rd);
+    stat->fp += real_rd; /* update fp */
+
     return real_rd;
 }
 
@@ -73,22 +94,23 @@ ssize_t mod_write(struct file *f, const char __user *ubuff, size_t sz, loff_t *o
     if(!buff) return -EINVAL;
 
     if(*ofs > BUF_SZ) {
-	printk(KERN_ERR "Offset to long!\n");
+	printk(KERN_ERR "Offset to long for write!\n");
 	return -EINVAL;
     };
 
     /* calculate real write size */
-    real_wr = ((*ofs + sz) > BUF_SZ) ? (BUF_SZ - *ofs) : sz;
-
-    if(real_wr != sz) {
-	printk(KERN_INFO "Write: at %d request %d, support %d (SZ=%d)\n", 
-		*ofs, sz, real_wr, BUF_SZ);
-    }
+    real_wr =
+	((*ofs + stat->fp + sz) > BUF_SZ) ? (BUF_SZ - stat->fp - *ofs) : sz;
 
     /* real copy */
-    real_wr = copy_from_user((void *)(buff + *ofs),ubuff, real_wr);
+    if(copy_from_user((void *)(buff + *ofs),ubuff, real_wr)) {
+	printk(KERN_ERR "copy_from_user() failed\n");
+	return -EFAULT;
+    }
 
-    printk(KERN_INFO "Module write return %d\n", real_wr);
+    printk(KERN_INFO "Module write return %zd\n", real_wr);
+    stat->fp += real_wr;
+
     return real_wr;
 }
 
@@ -129,6 +151,8 @@ int register_kbuf_device(void)
 	printk(KERN_ERR "Statistics allocate failed!\n");
 	return -ENOMEM;
     }
+
+    stat->fp = 0; /* initial set file pointer */
 
     dev_major = register_chrdev(0,DEV_NAME,&kbuf_fops);
     if( dev_major < 0 ){
