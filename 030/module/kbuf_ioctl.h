@@ -2,5 +2,6 @@
 #define _INCLUDE_KBUF_IOCTL_H_
 
 #define IOKBUF_STAT	0x1001
+#define IOKBUF_PROCSTAT	0x1002
 
 #endif
