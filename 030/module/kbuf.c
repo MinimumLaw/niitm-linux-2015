@@ -8,9 +8,9 @@
 
 #define DEV_NAME	"kbuf"
 #define BUF_SZ		1024
+#define NUM_DEVICES	5
 
 int dev_major;
-char* buff = NULL;
 
 typedef struct {
     int opened;
@@ -20,15 +20,23 @@ typedef struct {
     int lseek;
     int poll;
     int ioctl;
-    int fp; /* file pointer */
+    /* file pointer and buffer */
+    int fp;
+    char buff[BUF_SZ];
 } kbuf_stat;
 
-kbuf_stat *stat = NULL;
+kbuf_stat *dev = NULL;
 
-void show_stat(kbuf_stat *stat)
+void show_proc_info(int pid)
+{
+	printk(KERN_INFO "ToDo: show info about pid=%d\n", pid);
+}
+
+void show_stat(kbuf_stat *stat, int dev_minor)
 {
     if(stat) {
-	printk(KERN_INFO "STATISTICS:\n");
+	printk(KERN_INFO "STATISTICS for kbuf %d %d:\n", 
+	    dev_major, dev_minor);
 	printk(KERN_INFO "opened: %d\n", stat->opened);
 	printk(KERN_INFO "closed: %d\n", stat->closed);
 	printk(KERN_INFO "readed: %d\n", stat->readed);
@@ -44,31 +52,52 @@ void show_stat(kbuf_stat *stat)
 
 int kbuf_open(struct inode *i, struct file *f)
 {
-    if(stat) stat->opened++;
+    kbuf_stat *stat;
+    int idev = iminor(i);
 
+    if(idev < NUM_DEVICES && dev) {
+	stat = &dev[idev];
+    } else
+	return -ENODEV;
+
+    stat->opened++;
     stat->fp = 0; /* set file pointer to 0 on open */
-    printk(KERN_INFO "kbuf open\n");
+
+    printk(KERN_INFO "kbuf %d open\n", idev);
     return 0;
 }
 
 int kbuf_release(struct inode *i, struct file *f)
 {
-    if(stat) stat->closed++;
+    kbuf_stat *stat;
+    int idev = iminor(i);
 
-    printk(KERN_INFO "kbuf close\n");
+    if(idev < NUM_DEVICES && dev) {
+	stat = &dev[idev];
+    } else
+	return -ENODEV;
+
+    stat->closed++;
+
+    printk(KERN_INFO "kbuf %d closed\n", idev);
     return 0;
 }
 
 ssize_t kbuf_read(struct file *f, char __user *ubuff, size_t sz, loff_t *ofs)
 {
+    kbuf_stat *stat;
+    int idev = iminor(f->f_inode);
     size_t real_rd = 0;
 
-    if(stat) stat->readed++;
+    if(idev < NUM_DEVICES && dev) {
+	stat = &dev[idev];
+    } else
+	return -ENODEV;
 
-    if(!buff) return -EINVAL;
+    stat->readed++;
 
     if(*ofs > BUF_SZ) {
-	printk(KERN_ERR "Offset to long for read!\n");
+	printk(KERN_ERR "kbuf %d Offset to long for read!\n", idev);
 	return -EINVAL;
     };
 
@@ -76,12 +105,12 @@ ssize_t kbuf_read(struct file *f, char __user *ubuff, size_t sz, loff_t *ofs)
     real_rd = 
 	((*ofs + stat->fp + sz) > BUF_SZ) ? (BUF_SZ - stat->fp - *ofs) : sz;
 
-    if(copy_to_user(ubuff, (void *)(buff + *ofs), real_rd)) {
-	printk(KERN_ERR "copy_to_user() failed\n");
+    if(copy_to_user(ubuff, (void *)(stat->buff + *ofs), real_rd)) {
+	printk(KERN_ERR "kbuf %d copy_to_user() failed\n", idev);
 	return -EFAULT;
     }
 
-    printk(KERN_INFO "Module read return %zd\n", real_rd);
+    printk(KERN_INFO "kbuf %d Module read return %zd\n", idev, real_rd);
     stat->fp += real_rd; /* update fp */
 
     return real_rd;
@@ -89,14 +118,19 @@ ssize_t kbuf_read(struct file *f, char __user *ubuff, size_t sz, loff_t *ofs)
 
 ssize_t kbuf_write(struct file *f, const char __user *ubuff, size_t sz, loff_t *ofs)
 {
+    kbuf_stat *stat;
+    int idev = iminor(f->f_inode);
     size_t real_wr = 0;
 
-    if(stat) stat->writen++;
+    if(idev < NUM_DEVICES && dev) {
+	stat = &dev[idev];
+    } else
+	return -ENODEV;
 
-    if(!buff) return -EINVAL;
+    stat->writen++;
 
     if(*ofs > BUF_SZ) {
-	printk(KERN_ERR "Offset to long for write!\n");
+	printk(KERN_ERR "kbuf %d Offset to long for write!\n", idev);
 	return -EINVAL;
     };
 
@@ -105,12 +139,12 @@ ssize_t kbuf_write(struct file *f, const char __user *ubuff, size_t sz, loff_t *
 	((*ofs + stat->fp + sz) > BUF_SZ) ? (BUF_SZ - stat->fp - *ofs) : sz;
 
     /* real copy */
-    if(copy_from_user((void *)(buff + *ofs),ubuff, real_wr)) {
-	printk(KERN_ERR "copy_from_user() failed\n");
+    if(copy_from_user((void *)(stat->buff + *ofs),ubuff, real_wr)) {
+	printk(KERN_ERR "kbuf %d copy_from_user() failed\n", idev);
 	return -EFAULT;
     }
 
-    printk(KERN_INFO "Module write return %zd\n", real_wr);
+    printk(KERN_INFO "kbuf %d Module write return %zd\n", idev, real_wr);
     stat->fp += real_wr;
 
     return real_wr;
@@ -118,24 +152,30 @@ ssize_t kbuf_write(struct file *f, const char __user *ubuff, size_t sz, loff_t *
 
 long kbuf_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 {
+    kbuf_stat *stat;
+    int idev = iminor(f->f_inode);
     int ret = -1;
     int pid;
 
-    if(stat) stat->ioctl++;
-    printk(KERN_INFO "Module ioctl\n");
+    if(idev < NUM_DEVICES && dev) {
+	stat = &dev[idev];
+    } else
+	return -ENODEV;
+
+    stat->ioctl++;
 
     switch (cmd) {
     case IOKBUF_STAT:
-	show_stat(stat);
+	show_stat(stat, idev);
 	ret = 0;
 	break;
     case IOKBUF_PROCSTAT:
 	pid = arg;
-	printk(KERN_INFO "ToDo: show info about pid=%d\n", pid);
+	show_proc_info(pid);
 	ret = 0;
 	break;
     default:
-	printk(KERN_ERR "Unsupported IOCTL cmd %d\n", cmd);
+	printk(KERN_ERR "kbuf %d Unsupported IOCTL cmd %d\n", idev, cmd);
     }
 
     return ret;
@@ -143,50 +183,65 @@ long kbuf_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 
 loff_t kbuf_llseek(struct file *f, loff_t ofs, int cmd)
 {
+    kbuf_stat *stat;
+    int idev = iminor(f->f_inode);
     int ret = 0;
 
-    if(stat) stat->lseek++;
+    if(idev < NUM_DEVICES && dev) {
+	stat = &dev[idev];
+    } else
+	return -ENODEV;
 
-    printk(KERN_INFO "kbuf lseek\n");
+    stat->lseek++;
 
     switch(cmd){
     case SEEK_SET: /* absolute */
 	if(ofs > BUF_SZ || ofs > 0) {
-	    printk(KERN_ERR "To large offset!\n");
+	    printk(KERN_ERR "kbuf %d To large offset!\n", idev);
 	    ret = -EOVERFLOW;
 	} else {
-	    printk(KERN_ERR "seek ok!\n");
+	    printk(KERN_ERR "kbuf %d seek ok!\n", idev);
 	    stat->fp = ofs;
 	}
 	break;
     case SEEK_CUR: /* relative */
 	ofs += stat->fp;
 	if (ofs < 0 || ofs > BUF_SZ) {
-	    printk(KERN_ERR "To large offset!\n");
+	    printk(KERN_ERR "kbuf %d To large offset!\n", idev);
 	    ret = -EOVERFLOW;
 	} else {
-	    printk(KERN_ERR "seek ok!\n");
+	    printk(KERN_ERR "kbuf %d seek ok!\n", idev);
 	    stat->fp = ofs;
 	}
 	break;
     case SEEK_END: /* EOF + ofs - not supported */
-	printk(KERN_ERR "SEEK_END unsupported!\n");
+	printk(KERN_ERR "kbuf %d SEEK_END unsupported!\n", idev);
 	ret = -EOVERFLOW;
 	break;
     default:
 	ret = -EINVAL;
-	printk(KERN_ERR "Unsupported lseek params!\n");
+	printk(KERN_ERR "kbuf %d Unsupported lseek params!\n", idev);
     }
 
-    printk(KERN_INFO "kbuf lseek return %d\n", ret);
-    return (ret < 0) ? ret : stat->fp;
+    ret = (ret < 0) ? ret : stat->fp;
+    printk(KERN_INFO "kbuf %d lseek return %d\n", idev, ret);
+    return ret;
 }
 
 
 unsigned int kbuf_poll(struct file *f, struct poll_table_struct *pt)
 {
-    if(stat) stat->poll++;
-    printk(KERN_INFO "Module poll\n");
+    kbuf_stat *stat;
+    int idev = iminor(f->f_inode);
+
+    if(idev < NUM_DEVICES && dev) {
+	stat = &dev[idev];
+    } else
+	return -ENODEV;
+
+    stat->poll++;
+
+    printk(KERN_INFO "kbuf %d poll\n", idev);
     return 0;
 }
 
@@ -203,35 +258,28 @@ struct file_operations kbuf_fops = {
 
 int register_kbuf_device(void)
 {
-    buff = kzalloc(BUF_SZ, GFP_KERNEL);
-    if(buff == NULL) {
-	printk(KERN_ERR "Buffer allocate failed!\n");
+    /* Allocate device private data and buffers */
+    dev = (kbuf_stat*)kzalloc(sizeof(kbuf_stat) * NUM_DEVICES, GFP_KERNEL);
+    if(dev == NULL) {
+	printk(KERN_ERR "Allocate KBUF devices private data failed!\n");
 	return -ENOMEM;
     }
 
-    stat = (kbuf_stat*)kzalloc(sizeof(kbuf_stat), GFP_KERNEL);
-    if(stat == NULL) {
-	printk(KERN_ERR "Statistics allocate failed!\n");
-	return -ENOMEM;
-    }
-
-    stat->fp = 0; /* initial set file pointer */
-
+    /* Register devices */
     dev_major = register_chrdev(0,DEV_NAME,&kbuf_fops);
     if( dev_major < 0 ){
 	printk(KERN_ERR "Register chardev failed(%d)\n", dev_major);
 	return dev_major;
     }
-    printk(KERN_INFO "device registered (major = %d)\n", dev_major);
+
+    printk(KERN_INFO "device registered (major = %d, minor = 0..%d)\n",
+	dev_major, NUM_DEVICES);
     return 0;
 }
 
 void unregister_kbuf_device(void)
 {
-    show_stat(stat);
-
-    kfree(stat);
-    kfree(buff);
+    kfree(dev);
 
     unregister_chrdev(dev_major, DEV_NAME);
     printk(KERN_INFO "device unregistered\n");
