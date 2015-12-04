@@ -7,8 +7,12 @@
 #include "kbuf_ioctl.h"
 
 #define DEV_NAME	"kbuf"
-#define BUF_SZ		1024
 #define NUM_DEVICES	5
+#define BUF_SZ		1024
+/* dinamic major allocate */
+#define MAJOR_BASE	0
+/* minors from MINOR_BASE to MINOR_BASE + NUM_DEVICES */
+#define MINOR_BASE	0
 
 int dev_major;
 
@@ -53,9 +57,9 @@ void show_stat(kbuf_stat *stat, int dev_minor)
 int kbuf_open(struct inode *i, struct file *f)
 {
     kbuf_stat *stat;
-    int idev = iminor(i);
+    int idev = iminor(i) - MINOR_BASE;
 
-    if(idev < NUM_DEVICES && dev) {
+    if(idev < NUM_DEVICES && dev && idev > -1) {
 	stat = &dev[idev];
     } else
 	return -ENODEV;
@@ -70,9 +74,9 @@ int kbuf_open(struct inode *i, struct file *f)
 int kbuf_release(struct inode *i, struct file *f)
 {
     kbuf_stat *stat;
-    int idev = iminor(i);
+    int idev = iminor(i) - MINOR_BASE;
 
-    if(idev < NUM_DEVICES && dev) {
+    if(idev < NUM_DEVICES && dev && idev > -1) {
 	stat = &dev[idev];
     } else
 	return -ENODEV;
@@ -86,10 +90,10 @@ int kbuf_release(struct inode *i, struct file *f)
 ssize_t kbuf_read(struct file *f, char __user *ubuff, size_t sz, loff_t *ofs)
 {
     kbuf_stat *stat;
-    int idev = iminor(f->f_inode);
+    int idev = iminor(f->f_inode) - MINOR_BASE;
     size_t real_rd = 0;
 
-    if(idev < NUM_DEVICES && dev) {
+    if(idev < NUM_DEVICES && dev && idev > -1) {
 	stat = &dev[idev];
     } else
 	return -ENODEV;
@@ -102,7 +106,7 @@ ssize_t kbuf_read(struct file *f, char __user *ubuff, size_t sz, loff_t *ofs)
     };
 
     /* calculate real read size */
-    real_rd = 
+    real_rd =
 	((*ofs + stat->fp + sz) > BUF_SZ) ? (BUF_SZ - stat->fp - *ofs) : sz;
 
     if(copy_to_user(ubuff, (void *)(stat->buff + *ofs), real_rd)) {
@@ -119,10 +123,10 @@ ssize_t kbuf_read(struct file *f, char __user *ubuff, size_t sz, loff_t *ofs)
 ssize_t kbuf_write(struct file *f, const char __user *ubuff, size_t sz, loff_t *ofs)
 {
     kbuf_stat *stat;
-    int idev = iminor(f->f_inode);
+    int idev = iminor(f->f_inode) - MINOR_BASE;
     size_t real_wr = 0;
 
-    if(idev < NUM_DEVICES && dev) {
+    if(idev < NUM_DEVICES && dev && idev > -1) {
 	stat = &dev[idev];
     } else
 	return -ENODEV;
@@ -153,11 +157,11 @@ ssize_t kbuf_write(struct file *f, const char __user *ubuff, size_t sz, loff_t *
 long kbuf_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 {
     kbuf_stat *stat;
-    int idev = iminor(f->f_inode);
+    int idev = iminor(f->f_inode) - MINOR_BASE;
     int ret = -1;
     int pid;
 
-    if(idev < NUM_DEVICES && dev) {
+    if(idev < NUM_DEVICES && dev && idev > -1) {
 	stat = &dev[idev];
     } else
 	return -ENODEV;
@@ -184,10 +188,10 @@ long kbuf_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 loff_t kbuf_llseek(struct file *f, loff_t ofs, int cmd)
 {
     kbuf_stat *stat;
-    int idev = iminor(f->f_inode);
+    int idev = iminor(f->f_inode) - MINOR_BASE;
     int ret = 0;
 
-    if(idev < NUM_DEVICES && dev) {
+    if(idev < NUM_DEVICES && dev && idev > -1) {
 	stat = &dev[idev];
     } else
 	return -ENODEV;
@@ -232,9 +236,9 @@ loff_t kbuf_llseek(struct file *f, loff_t ofs, int cmd)
 unsigned int kbuf_poll(struct file *f, struct poll_table_struct *pt)
 {
     kbuf_stat *stat;
-    int idev = iminor(f->f_inode);
+    int idev = iminor(f->f_inode) - MINOR_BASE;
 
-    if(idev < NUM_DEVICES && dev) {
+    if(idev < NUM_DEVICES && dev && idev > -1) {
 	stat = &dev[idev];
     } else
 	return -ENODEV;
@@ -266,14 +270,17 @@ int register_kbuf_device(void)
     }
 
     /* Register devices */
-    dev_major = register_chrdev(0,DEV_NAME,&kbuf_fops);
+    dev_major = register_chrdev(MAJOR_BASE,DEV_NAME,&kbuf_fops);
     if( dev_major < 0 ){
 	printk(KERN_ERR "Register chardev failed(%d)\n", dev_major);
 	return dev_major;
     }
 
-    printk(KERN_INFO "device registered (major = %d, minor = 0..%d)\n",
-	dev_major, NUM_DEVICES);
+    /* MAJOR_BASE not 0 - no dinamic major allocate */
+    if(dev_major == 0) dev_major = MAJOR_BASE;
+
+    printk(KERN_INFO "kbuf devices registered (major = %d, minor = %d..%d)\n",
+	dev_major, MINOR_BASE, MINOR_BASE + NUM_DEVICES);
     return 0;
 }
 
@@ -282,17 +289,17 @@ void unregister_kbuf_device(void)
     kfree(dev);
 
     unregister_chrdev(dev_major, DEV_NAME);
-    printk(KERN_INFO "device unregistered\n");
+    printk(KERN_INFO "kbuf devices unregistered\n");
 }
 
 int init_module(void)
 {
-    printk(KERN_INFO "Module init\n");
+    printk(KERN_INFO "kbuf module init\n");
     return register_kbuf_device();
 }
 
 void cleanup_module(void)
 {
     unregister_kbuf_device();
-    printk(KERN_INFO "Module exit\n");
+    printk(KERN_INFO "kbuf module exit\n");
 }
