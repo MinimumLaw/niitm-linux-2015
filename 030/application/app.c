@@ -35,7 +35,7 @@ int main(int argc, char** argv, char** env)
 
 #ifdef TEST_SEEK
     printf("Now, seek to unsupported position from current (large): ");
-    ret = lseek(fd, SEEK_CUR, 1024);
+    ret = lseek(fd, SEEK_CUR, 128);
     if(ret < 0) {
 	printf("[ OK ]\n");
 	perror("lseek");
@@ -43,7 +43,7 @@ int main(int argc, char** argv, char** env)
 	printf("[FAIL]\n");
 
     printf("Now, seek to unsupported position from current (small): ");
-    ret = lseek(fd, SEEK_CUR, -2048);
+    ret = lseek(fd, SEEK_CUR, -256);
     if(ret < 0) {
 	printf("[ OK ]\n");
 	perror("lseek");
@@ -51,7 +51,7 @@ int main(int argc, char** argv, char** env)
 	printf("[FAIL]\n");
 
     printf("Now, seek to unsupported position from start (large): ");
-    ret = lseek(fd, SEEK_CUR, 1028);
+    ret = lseek(fd, SEEK_SET, 256);
     if(ret < 0) {
 	printf("[ OK ]\n");
 	perror("lseek");
@@ -59,7 +59,7 @@ int main(int argc, char** argv, char** env)
 	printf("[FAIL]\n");
 
     printf("Now, seek to unsupported position from start (small): ");
-    ret = lseek(fd, SEEK_CUR, -1028);
+    ret = lseek(fd, SEEK_SET, -256);
     if(ret < 0) {
 	printf("[ OK ]\n");
 	perror("lseek");

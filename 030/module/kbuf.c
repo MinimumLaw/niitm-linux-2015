@@ -8,7 +8,7 @@
 
 #define DEV_NAME	"kbuf"
 #define NUM_DEVICES	5
-#define BUF_SZ		1024
+#define BUF_SZ		128
 /* dinamic major allocate */
 #define MAJOR_BASE	0
 /* minors from MINOR_BASE to MINOR_BASE + NUM_DEVICES */
@@ -49,6 +49,8 @@ void show_stat(kbuf_stat *stat, int dev_minor)
 	printk(KERN_INFO "poll:   %d\n", stat->poll);
 	printk(KERN_INFO "ioctl:  %d\n", stat->ioctl);
 	printk(KERN_INFO "FP at:  %d\n", stat->fp);
+	print_hex_dump(KERN_INFO, "kbuf: ", DUMP_PREFIX_OFFSET,
+		16, 1, stat->buff, BUF_SZ, true);
     } else {
 	printk(KERN_ERR "Sorry, no statistics present.\n");
     }
