@@ -222,11 +222,11 @@ loff_t kbuf_llseek(struct file *f, loff_t ofs, int cmd)
 	}
 	break;
     case SEEK_END:
-	if(ofs) { /* EOF + ofs - not supported */
-	    printk(KERN_ERR "kbuf %d SEEK_END with ofs!=0 unsupported!\n", idev);
+	if(ofs > 0 || ofs < (0-BUF_SZ+1)) {
+	    printk(KERN_ERR "kbuf %d SEEK_END : Invalid offset!\n", idev);
 	    ret = -EOVERFLOW;
 	} else {
-	    stat->fp = BUF_SZ - 1;
+	    stat->fp = ofs + BUF_SZ - 1;
 	}
 	break;
     default:

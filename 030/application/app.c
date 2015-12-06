@@ -28,9 +28,9 @@ void poll_dev(int fd)
 	perror("poll");
     } else {
 	if(fds.revents & POLLIN)
-	    printf("can read ");
+	    printf("can read, ");
 	if(fds.revents & POLLOUT)
-	    printf("can write ");
+	    printf("can write, ");
     };
     printf("done\n");
 }
