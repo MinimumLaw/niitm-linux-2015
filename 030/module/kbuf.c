@@ -202,21 +202,21 @@ loff_t kbuf_llseek(struct file *f, loff_t ofs, int cmd)
 
     switch(cmd){
     case SEEK_SET: /* absolute */
-	if(ofs > BUF_SZ || ofs > 0) {
-	    printk(KERN_ERR "kbuf %d To large offset!\n", idev);
+	if(ofs > (BUF_SZ-1) || ofs < 0) {
+	    printk(KERN_ERR "kbuf %d SEEK_SET : Invalid offset!\n", idev);
 	    ret = -EOVERFLOW;
 	} else {
-	    printk(KERN_ERR "kbuf %d seek ok!\n", idev);
+	    printk(KERN_ERR "kbuf %d SEEK_SET seek ok!\n", idev);
 	    stat->fp = ofs;
 	}
 	break;
     case SEEK_CUR: /* relative */
 	ofs += stat->fp;
-	if (ofs < 0 || ofs > BUF_SZ) {
-	    printk(KERN_ERR "kbuf %d To large offset!\n", idev);
+	if (ofs < 0 || ofs > (BUF_SZ-1)) {
+	    printk(KERN_ERR "kbuf %d SEEK_CUR : Invalid offset!\n", idev);
 	    ret = -EOVERFLOW;
 	} else {
-	    printk(KERN_ERR "kbuf %d seek ok!\n", idev);
+	    printk(KERN_ERR "kbuf %d SEEK_CUR seek ok!\n", idev);
 	    stat->fp = ofs;
 	}
 	break;
@@ -226,7 +226,7 @@ loff_t kbuf_llseek(struct file *f, loff_t ofs, int cmd)
 	break;
     default:
 	ret = -EINVAL;
-	printk(KERN_ERR "kbuf %d Unsupported lseek params!\n", idev);
+	printk(KERN_ERR "kbuf %d Unsupported lseek whence!\n", idev);
     }
 
     ret = (ret < 0) ? ret : stat->fp;

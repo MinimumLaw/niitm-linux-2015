@@ -33,42 +33,8 @@ int main(int argc, char** argv, char** env)
     printf("Write to device %s %d bytes\n",
 	dev_name, wr);
 
-#ifdef TEST_SEEK
-    printf("Now, seek to unsupported position from current (large): ");
-    ret = lseek(fd, SEEK_CUR, 128);
-    if(ret < 0) {
-	printf("[ OK ]\n");
-	perror("lseek");
-    } else
-	printf("[FAIL]\n");
-
-    printf("Now, seek to unsupported position from current (small): ");
-    ret = lseek(fd, SEEK_CUR, -256);
-    if(ret < 0) {
-	printf("[ OK ]\n");
-	perror("lseek");
-    } else
-	printf("[FAIL]\n");
-
-    printf("Now, seek to unsupported position from start (large): ");
-    ret = lseek(fd, SEEK_SET, 256);
-    if(ret < 0) {
-	printf("[ OK ]\n");
-	perror("lseek");
-    } else
-	printf("[FAIL]\n");
-
-    printf("Now, seek to unsupported position from start (small): ");
-    ret = lseek(fd, SEEK_SET, -256);
-    if(ret < 0) {
-	printf("[ OK ]\n");
-	perror("lseek");
-    } else
-	printf("[FAIL]\n");
-#endif
-
     printf("Now, seek to start of file\n");
-    ret = lseek(fd, SEEK_SET, 0);
+    ret = lseek(fd, 0, SEEK_SET);
     if(ret < 0) {
 	perror("lseek");
 	return ret;
