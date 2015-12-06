@@ -1,8 +1,10 @@
 #include <sys/types.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
+#include <poll.h>
 
 #include "./../module/kbuf_ioctl.h"
 
@@ -11,6 +13,27 @@ const char dev_name[] = "./kbuf";
 int wr;
 char message[128];
 char buff[1024];
+
+void poll_dev(int fd)
+{
+    struct pollfd fds;
+    int ret;
+
+    printf("Try poll() device for read and write : ");
+    memset(&fds, 0, sizeof(struct pollfd));
+    fds.fd = fd;
+    fds.events = POLLIN | POLLOUT;
+    ret = poll(&fds, 1, 1);
+    if(ret < 0) {
+	perror("poll");
+    } else {
+	if(fds.revents & POLLIN)
+	    printf("can read ");
+	if(fds.revents & POLLOUT)
+	    printf("can write ");
+    };
+    printf("done\n");
+}
 
 int main(int argc, char** argv, char** env)
 {
@@ -33,12 +56,23 @@ int main(int argc, char** argv, char** env)
     printf("Write to device %s %d bytes\n",
 	dev_name, wr);
 
+    printf("Now, seek to end of file\n");
+    ret = lseek(fd, 0, SEEK_END);
+    if(ret < 0) {
+	perror("lseek");
+	return ret;
+    }
+
+    poll_dev(fd);
+
     printf("Now, seek to start of file\n");
     ret = lseek(fd, 0, SEEK_SET);
     if(ret < 0) {
 	perror("lseek");
 	return ret;
     }
+
+    poll_dev(fd);
 
     wr = read(fd, buff, wr);
     printf("Read back from device %s %d bytes\n",

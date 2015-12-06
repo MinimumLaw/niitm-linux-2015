@@ -1,5 +1,6 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/poll.h>
 #include <linux/slab.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
@@ -220,9 +221,13 @@ loff_t kbuf_llseek(struct file *f, loff_t ofs, int cmd)
 	    stat->fp = ofs;
 	}
 	break;
-    case SEEK_END: /* EOF + ofs - not supported */
-	printk(KERN_ERR "kbuf %d SEEK_END unsupported!\n", idev);
-	ret = -EOVERFLOW;
+    case SEEK_END:
+	if(ofs) { /* EOF + ofs - not supported */
+	    printk(KERN_ERR "kbuf %d SEEK_END with ofs!=0 unsupported!\n", idev);
+	    ret = -EOVERFLOW;
+	} else {
+	    stat->fp = BUF_SZ - 1;
+	}
 	break;
     default:
 	ret = -EINVAL;
@@ -237,6 +242,7 @@ loff_t kbuf_llseek(struct file *f, loff_t ofs, int cmd)
 
 unsigned int kbuf_poll(struct file *f, struct poll_table_struct *pt)
 {
+    int ret;
     kbuf_stat *stat;
     int idev = iminor(f->f_inode) - MINOR_BASE;
 
@@ -247,8 +253,15 @@ unsigned int kbuf_poll(struct file *f, struct poll_table_struct *pt)
 
     stat->poll++;
 
-    printk(KERN_INFO "kbuf %d poll\n", idev);
-    return 0;
+    ret = 0;
+    /* if fp != EOF can read and write */
+    if(stat->fp < (BUF_SZ -1))
+	ret = (POLLIN | POLLOUT);
+
+    printk(KERN_INFO "kbuf %d poll return %d(fp=%d)\n",
+	idev, ret, stat->fp);
+
+    return ret;
 }
 
 struct file_operations kbuf_fops = {
