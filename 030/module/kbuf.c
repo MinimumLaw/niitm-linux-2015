@@ -275,7 +275,7 @@ struct file_operations kbuf_fops = {
     .llseek = kbuf_llseek,
 };
 
-int register_kbuf_device(void)
+int probe_kbuf_device(void)
 {
     /* Allocate device private data and buffers */
     dev = (kbuf_stat*)kzalloc(sizeof(kbuf_stat) * NUM_DEVICES, GFP_KERNEL);
@@ -299,7 +299,7 @@ int register_kbuf_device(void)
     return 0;
 }
 
-void unregister_kbuf_device(void)
+void remove_kbuf_device(void)
 {
     kfree(dev);
 
@@ -310,11 +310,11 @@ void unregister_kbuf_device(void)
 int init_module(void)
 {
     printk(KERN_INFO "kbuf module init\n");
-    return register_kbuf_device();
+    return probe_kbuf_device();
 }
 
 void cleanup_module(void)
 {
-    unregister_kbuf_device();
+    remove_kbuf_device();
     printk(KERN_INFO "kbuf module exit\n");
 }
