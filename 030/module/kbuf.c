@@ -3,6 +3,8 @@
 #include <linux/poll.h>
 #include <linux/slab.h>
 #include <linux/fs.h>
+#include <linux/sched.h>
+#include <linux/pid.h>
 #include <linux/uaccess.h>
 
 #include "kbuf_ioctl.h"
@@ -32,9 +34,26 @@ typedef struct {
 
 kbuf_stat *dev = NULL;
 
-void show_proc_info(int pid)
+void show_proc_info(int p)
 {
-	printk(KERN_INFO "ToDo: show info about pid=%d\n", pid);
+    struct task_struct *task = NULL;
+    struct pid *pid = NULL;
+
+    pid = find_vpid(p);
+    if(!pid)
+	goto err;
+
+    task = get_pid_task(pid, PIDTYPE_PID);
+    if(!task)
+	goto err;
+
+    printk(KERN_INFO "Show info about pid=%d\n", p);
+    printk(KERN_INFO "\tname: %s\n", task->comm);
+    return;
+
+err:
+	printk(KERN_ERR "Not found pid=%d\n", p);
+
 }
 
 void show_stat(kbuf_stat *stat, int dev_minor)
@@ -318,3 +337,5 @@ void cleanup_module(void)
     remove_kbuf_device();
     printk(KERN_INFO "kbuf module exit\n");
 }
+
+MODULE_LICENSE("GPL");
