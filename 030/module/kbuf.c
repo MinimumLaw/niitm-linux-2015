@@ -5,6 +5,7 @@
 #include <linux/fs.h>
 #include <linux/sched.h>
 #include <linux/pid.h>
+#include <linux/interrupt.h>
 #include <linux/uaccess.h>
 
 #include "kbuf_ioctl.h"
@@ -17,7 +18,10 @@
 /* minors from MINOR_BASE to MINOR_BASE + NUM_DEVICES */
 #define MINOR_BASE	0
 
+#define MONITOR_IRQ_NUMBER	19
+
 int dev_major;
+volatile uint32_t dev_irq = 0;
 
 typedef struct {
     int opened;
@@ -200,6 +204,11 @@ long kbuf_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	show_proc_info(pid);
 	ret = 0;
 	break;
+    case IOKBUF_DEVSTAT:
+	ret = copy_to_user((void __user *)arg, (void *)&dev_irq, sizeof(uint32_t));
+	printk(KERN_INFO "DEVSTAT = %d (%d bytes)\n", dev_irq, ret);
+	ret = 0;
+	break;
     default:
 	printk(KERN_ERR "kbuf %d Unsupported IOCTL cmd %d\n", idev, cmd);
     }
@@ -283,6 +292,14 @@ unsigned int kbuf_poll(struct file *f, struct poll_table_struct *pt)
     return ret;
 }
 
+irqreturn_t handler(int nr, void* count)
+{
+    WARN_ON(count != &dev_irq);
+
+    (*(volatile uint32_t*)count)++;
+    return IRQ_NONE;
+}
+
 struct file_operations kbuf_fops = {
     .owner = THIS_MODULE,
     .open = kbuf_open,
@@ -310,6 +327,14 @@ int probe_kbuf_device(void)
 	return dev_major;
     }
 
+    /* irq */
+    if(request_irq(MONITOR_IRQ_NUMBER, handler,
+		IRQF_SHARED, "name", (void *)&dev_irq)) {
+	printk(KERN_ERR "request irq failed\n");
+	return -EBADF;
+    }
+    printk(KERN_INFO "IRQ registered\n");
+
     /* MAJOR_BASE not 0 - no dinamic major allocate */
     if(dev_major == 0) dev_major = MAJOR_BASE;
 
@@ -320,9 +345,15 @@ int probe_kbuf_device(void)
 
 void remove_kbuf_device(void)
 {
-    kfree(dev);
+    /* irq */
+    synchronize_irq(MONITOR_IRQ_NUMBER);
+    free_irq(MONITOR_IRQ_NUMBER, (void *)&dev_irq);
 
+    /* dev */
     unregister_chrdev(dev_major, DEV_NAME);
+
+    /* private */
+    kfree(dev);
     printk(KERN_INFO "kbuf devices unregistered\n");
 }
 

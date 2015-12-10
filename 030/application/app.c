@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <sys/types.h>
 #include <string.h>
 #include <unistd.h>
@@ -39,6 +40,7 @@ int main(int argc, char** argv, char** env)
 {
     int fd;
     int ret;
+    uint32_t count;
 
     if(argc == 2)
 	strcpy(message,argv[1]);
@@ -91,6 +93,12 @@ int main(int argc, char** argv, char** env)
 	perror("ioctl");
     else
         printf("Statistics about myself in syslog ioctl() return %d\n", wr);
+
+    wr = ioctl(fd, IOKBUF_DEVSTAT, &count);
+    if(wr < 0)
+	perror("ioctl (devstat)");
+    else
+        printf("Statistics dev is %d  (ioctl return %d)\n", count, wr);
 
     close(fd);
     printf("Device file %s closed\n", dev_name);
