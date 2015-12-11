@@ -31,8 +31,7 @@ typedef struct {
     int lseek;
     int poll;
     int ioctl;
-    /* file pointer and buffer */
-    int fp;
+    /* file buffer */
     char buff[BUF_SZ];
 } kbuf_stat;
 
@@ -72,7 +71,6 @@ void show_stat(kbuf_stat *stat, int dev_minor)
 	printk(KERN_INFO "lseek:  %d\n", stat->lseek);
 	printk(KERN_INFO "poll:   %d\n", stat->poll);
 	printk(KERN_INFO "ioctl:  %d\n", stat->ioctl);
-	printk(KERN_INFO "FP at:  %d\n", stat->fp);
 	print_hex_dump(KERN_INFO, "kbuf: ", DUMP_PREFIX_OFFSET,
 		16, 1, stat->buff, BUF_SZ, true);
     } else {
@@ -91,7 +89,7 @@ int kbuf_open(struct inode *i, struct file *f)
 	return -ENODEV;
 
     stat->opened++;
-    stat->fp = 0; /* set file pointer to 0 on open */
+    f->f_pos = 0; /* set file pointer to 0 on open */
 
     printk(KERN_INFO "kbuf %d open\n", idev);
     return 0;
@@ -133,7 +131,7 @@ ssize_t kbuf_read(struct file *f, char __user *ubuff, size_t sz, loff_t *ofs)
 
     /* calculate real read size */
     real_rd =
-	((*ofs + stat->fp + sz) > BUF_SZ) ? (BUF_SZ - stat->fp - *ofs) : sz;
+	((*ofs + f->f_pos + sz) > BUF_SZ) ? (BUF_SZ - f->f_pos - *ofs) : sz;
 
     if(copy_to_user(ubuff, (void *)(stat->buff + *ofs), real_rd)) {
 	printk(KERN_ERR "kbuf %d copy_to_user() failed\n", idev);
@@ -141,7 +139,7 @@ ssize_t kbuf_read(struct file *f, char __user *ubuff, size_t sz, loff_t *ofs)
     }
 
     printk(KERN_INFO "kbuf %d Module read return %zd\n", idev, real_rd);
-    stat->fp += real_rd; /* update fp */
+    f->f_pos += real_rd; /* update fp */
 
     return real_rd;
 }
@@ -166,7 +164,7 @@ ssize_t kbuf_write(struct file *f, const char __user *ubuff, size_t sz, loff_t *
 
     /* calculate real write size */
     real_wr =
-	((*ofs + stat->fp + sz) > BUF_SZ) ? (BUF_SZ - stat->fp - *ofs) : sz;
+	((*ofs + f->f_pos + sz) > BUF_SZ) ? (BUF_SZ - f->f_pos - *ofs) : sz;
 
     /* real copy */
     if(copy_from_user((void *)(stat->buff + *ofs),ubuff, real_wr)) {
@@ -175,7 +173,7 @@ ssize_t kbuf_write(struct file *f, const char __user *ubuff, size_t sz, loff_t *
     }
 
     printk(KERN_INFO "kbuf %d Module write return %zd\n", idev, real_wr);
-    stat->fp += real_wr;
+    f->f_pos += real_wr;
 
     return real_wr;
 }
@@ -236,17 +234,17 @@ loff_t kbuf_llseek(struct file *f, loff_t ofs, int cmd)
 	    ret = -EOVERFLOW;
 	} else {
 	    printk(KERN_ERR "kbuf %d SEEK_SET seek ok!\n", idev);
-	    stat->fp = ofs;
+	    f->f_pos = ofs;
 	}
 	break;
     case SEEK_CUR: /* relative */
-	ofs += stat->fp;
+	ofs += f->f_pos;
 	if (ofs < 0 || ofs > (BUF_SZ-1)) {
 	    printk(KERN_ERR "kbuf %d SEEK_CUR : Invalid offset!\n", idev);
 	    ret = -EOVERFLOW;
 	} else {
 	    printk(KERN_ERR "kbuf %d SEEK_CUR seek ok!\n", idev);
-	    stat->fp = ofs;
+	    f->f_pos = ofs;
 	}
 	break;
     case SEEK_END:
@@ -254,7 +252,7 @@ loff_t kbuf_llseek(struct file *f, loff_t ofs, int cmd)
 	    printk(KERN_ERR "kbuf %d SEEK_END : Invalid offset!\n", idev);
 	    ret = -EOVERFLOW;
 	} else {
-	    stat->fp = ofs + BUF_SZ - 1;
+	    f->f_pos = ofs + BUF_SZ - 1;
 	}
 	break;
     default:
@@ -262,7 +260,7 @@ loff_t kbuf_llseek(struct file *f, loff_t ofs, int cmd)
 	printk(KERN_ERR "kbuf %d Unsupported lseek whence!\n", idev);
     }
 
-    ret = (ret < 0) ? ret : stat->fp;
+    ret = (ret < 0) ? ret : f->f_pos;
     printk(KERN_INFO "kbuf %d lseek return %d\n", idev, ret);
     return ret;
 }
@@ -283,11 +281,11 @@ unsigned int kbuf_poll(struct file *f, struct poll_table_struct *pt)
 
     ret = 0;
     /* if fp != EOF can read and write */
-    if(stat->fp < (BUF_SZ -1))
+    if(f->f_pos < (BUF_SZ -1))
 	ret = (POLLIN | POLLOUT);
 
-    printk(KERN_INFO "kbuf %d poll return %d(fp=%d)\n",
-	idev, ret, stat->fp);
+    printk(KERN_INFO "kbuf %d poll return %d(fp at %lld)\n",
+	idev, ret, f->f_pos);
 
     return ret;
 }
