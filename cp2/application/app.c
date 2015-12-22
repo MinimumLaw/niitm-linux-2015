@@ -36,6 +36,32 @@ void poll_dev(int fd)
     printf("done\n");
 }
 
+void show_netstats(int fd)
+{
+    struct vnet_priv vnet;
+
+    wr = ioctl(fd, IOVNET_DEVSTAT, &vnet);
+    if(wr < 0)
+	perror("ioctl (devstat)");
+    else {
+	int i;
+        printf("Statistics vnet device  (ioctl return %d)\n", wr);
+        printf("\topened:\t\t%ld\n", vnet.open);
+        printf("\tstopped:\t%ld\n", vnet.stop);
+        printf("\tbytes:\t\t%ld\n", vnet.count);
+        printf("\txmitted:\t%ld\n", vnet.xmit);
+        printf("\ttimeouts:\t%ld\n", vnet.timeouts);
+	printf("last bytes:");
+	for(i=0;i<256;i++){
+	    if(i%16)
+		printf(" %02X", vnet.last_bytes[i]);
+	    else
+		printf("\n%02X", vnet.last_bytes[i]);
+	}
+	printf("\n");
+    }
+}
+
 int main(int argc, char** argv, char** env)
 {
     int fd;
@@ -99,6 +125,8 @@ int main(int argc, char** argv, char** env)
 	perror("ioctl (devstat)");
     else
         printf("Statistics dev is %d  (ioctl return %d)\n", count, wr);
+
+    show_netstats(fd);
 
     close(fd);
     printf("Device file %s closed\n", dev_name);

@@ -216,6 +216,18 @@ long kbuf_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	printk(KERN_INFO "DEVSTAT = %d (%d bytes)\n", dev_irq, ret);
 	ret = 0;
 	break;
+    /*
+     * NET Device
+     */
+    case IOVNET_DEVSTAT:
+	if(virt_net) {
+	    struct vnet_priv* priv = netdev_priv(virt_net);
+	    if(priv)
+		ret = copy_to_user((void __user *)arg, (void *)priv, 
+		    sizeof(struct vnet_priv));
+	    else ret = -ENODEV;
+	} else ret = -ENODEV;
+	break;
     default:
 	printk(KERN_ERR "kbuf %d Unsupported IOCTL cmd %d\n", idev, cmd);
     }
@@ -340,9 +352,13 @@ int vnet_stop(struct net_device *dev)
 int vnet_xmit(struct sk_buff *skb, struct net_device *dev)
 {
     struct vnet_priv* priv = netdev_priv(dev);
-
     priv->xmit++;
-    return 0;
+
+    /* total data len calculate */
+    priv->count += skb->len;
+    /* ToDo: copy last bytes */
+
+    return NETDEV_TX_OK;
 }
 
 void vnet_timeout(struct net_device *dev)

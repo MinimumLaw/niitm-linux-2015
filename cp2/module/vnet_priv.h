@@ -5,6 +5,8 @@
 #define IOKBUF_PROCSTAT	0x1002
 #define IOKBUF_DEVSTAT	0x1003
 
+#define IOVNET_DEVSTAT	0x2003
+
 struct vnet_priv {
     struct net_device *dev;
     /*
@@ -15,6 +17,7 @@ struct vnet_priv {
     unsigned long xmit;
     unsigned long count;
     unsigned long timeouts;
+    unsigned char last_bytes[256];
 };
 
 #endif
