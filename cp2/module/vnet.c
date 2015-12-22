@@ -363,6 +363,9 @@ int vnet_xmit(struct sk_buff *skb, struct net_device *dev)
     else
 	memcpy(priv->last_bytes, skb->data, skb->len);
 
+    /* free skb */
+    dev_consume_skb_any(skb);
+
     return NETDEV_TX_OK;
 }
 
