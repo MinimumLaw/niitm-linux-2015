@@ -30,7 +30,7 @@
 int dev_major;
 volatile uint32_t dev_irq = 0;
 
-struct vnet_priv* virt_net;
+struct net_device* virt_net = NULL;
 
 typedef struct {
     int opened;
@@ -373,8 +373,6 @@ static void vnet_setup(struct net_device *dev)
 
 int probe_kbuf_device(void)
 {
-    struct net_device* vnet;
-
     /* Allocate device private data and buffers */
     dev = (kbuf_stat*)kzalloc(sizeof(kbuf_stat) * NUM_DEVICES, GFP_KERNEL);
     if(dev == NULL) {
@@ -406,15 +404,15 @@ int probe_kbuf_device(void)
     /*
      * NET device
      */
-    vnet = alloc_netdev(sizeof(struct vnet_priv), NDEV_NAME,
+    virt_net = alloc_netdev(sizeof(struct vnet_priv), NDEV_NAME,
 		NET_NAME_UNKNOWN, &vnet_setup);
-    if(!vnet) {
+    if(!virt_net) {
 	printk(KERN_ERR "netdev alloc failed\n");
 	return -ENODEV;
     }
     printk(KERN_INFO "netdev allocated success\n");
 
-    if(register_netdev(vnet)) {
+    if(register_netdev(virt_net)) {
 	printk(KERN_ERR "netdev register failed\n");
 	return -ENODEV;
     }
@@ -428,8 +426,12 @@ void remove_kbuf_device(void)
     /*
      * NET device
      */
-    unregister_netdev(virt_net->dev);
-    free_netdev(virt_net->dev);
+    if(virt_net) {
+	unregister_netdev(virt_net);
+	free_netdev(virt_net);
+	printk(KERN_INFO "netdev virt_net removed\n");
+    } else
+	printk(KERN_INFO "netdev virt_net not present\n");
 
     /* irq */
     synchronize_irq(MONITOR_IRQ_NUMBER);
