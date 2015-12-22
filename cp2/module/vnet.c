@@ -24,7 +24,7 @@
 /*
  * NET device
  */
-#define NDEV_NAME	"vnet"
+#define NDEV_NAME	"vnet%d"
 #define NDEV_TOUT	100
 
 int dev_major;
