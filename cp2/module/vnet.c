@@ -356,7 +356,12 @@ int vnet_xmit(struct sk_buff *skb, struct net_device *dev)
 
     /* total data len calculate */
     priv->count += skb->len;
-    /* ToDo: copy last bytes */
+    /* copy last bytes */
+    memset(priv->last_bytes, 0, 255);
+    if(skb->len > 256)
+	memcpy(priv->last_bytes, &skb->data[skb->len - 256], 256);
+    else
+	memcpy(priv->last_bytes, skb->data, skb->len);
 
     return NETDEV_TX_OK;
 }
